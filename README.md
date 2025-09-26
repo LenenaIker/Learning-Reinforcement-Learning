@@ -11,15 +11,12 @@ Inside the ne kabuz folder are the different environments that I have attempted 
 
 MountainCar-v0
 
-  f08 was the first to solve MountainCar.
-  
-  f07 came close but didn't have enough episodes.
-
-
-  In f07, I used a single model with Reward Shaping, and in f08, I used Double DQN without Reward Shaping.
+  - f08 was the first to solve MountainCar.
+  - f07 came close but didn't have enough episodes.
+  - In f07, I used a single model with Reward Shaping, and in f08, I used Double DQN without Reward Shaping.
 
 
 
 ALE/Breakout-v5
 
-  Just starting
+  - Just starting
