@@ -1,6 +1,7 @@
 
 import gymnasium as gym
 import numpy as np
+import keras
 
 env = gym.make("MountainCar-v0", render_mode = "human")
 
@@ -42,6 +43,14 @@ for i in range(200): # 200 Bakarrik ze max_episode_steps defektuz hoi da.
 # 1 == Ezer
 # 2 == Eskubi
 
-
-
 env.close()
+
+
+model = keras.models.Sequential([
+    keras.Input(shape = env.observation_space.shape),
+    keras.layers.Dense(32, activation = "elu"),
+    keras.layers.Dense(32, activation = "elu"),
+    keras.layers.Dense(env.action_space.n)
+])
+
+print(model.summary())
