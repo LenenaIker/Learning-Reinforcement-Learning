@@ -10,7 +10,7 @@ import os
 from datetime import datetime
 
 
-MODEL_PATH = "neKabuz/f08Model.h5"
+MODEL_PATH = "neKabuz/F01_MountainCar/f08Model.h5"
 TARGET_UPDATE_EVERY_STEPS = 2000
 GAMMA = 0.99 # Discount factor # Aurretik pasaian pasuak baloratzeakoan zenbat pixu utzi behar zaien esateuna
 BATCH_SIZE = 64

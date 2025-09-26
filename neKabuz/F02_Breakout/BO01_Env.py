@@ -1,7 +1,7 @@
 import gymnasium as gym
 import ale_py
 from time import sleep
-
+import numpy as np
 
 gym.register_envs(ale_py)
 
@@ -17,6 +17,11 @@ obs, info = env.reset()
 
 print("Obs: ", obs, " | Info: ",  info)
 
+
+OBS_LOWS = env.observation_space.low.astype(np.float32)
+OBS_HIGHS = env.observation_space.high.astype(np.float32)
+
+print(OBS_LOWS, OBS_HIGHS)
 
 for i in range(MAX_EPISODE_STEPS):
     action = i % env.action_space.n
@@ -45,6 +50,8 @@ env.close()
 
 # Obserbazio askoz gehio daude entorno hontan, MountainCarrekin konparatuz: Observations/State:  (210, 160, 3)
 # Ustet estatuak pelota nun daon esangoiala
+# Emateu 0-255 bitarteko baloreak itzultzeitula obserbazio bezala.
+# Honek esateigu, gure sarrera 210x160 pixel-eko irudi bat izangoala, eta irudi horretako pixel bakoitzak 3 balore izango ditula (R, G, B) koloreak adierazteko. 
 
 # Infok oain bai zeoze ekartzeiala: Info: {'lives': 5, 'episode_frame_number': 0, 'frame_number': 0}
 
@@ -59,3 +66,4 @@ env.close()
 # Kontuan izan behar deu, palak pelota jotzeunetik, pelotak teja puskatu harte denboa bat pasatzeal.
 # Honek esan nahi du, orainean lortutako irabaziek, iraganean pasatako akzioak saritu beharkoitula
 # Beraz, gure modeloak epe luzeko ikuspegia izan behar du. Hau lortzeko "deskontu" sistema bat aplikatu behakoeu "discount factor".
+
