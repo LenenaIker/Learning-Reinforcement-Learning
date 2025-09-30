@@ -82,7 +82,7 @@ if SAVED_MODEL:
 else:
     model = keras.models.Sequential([
         keras.Input(shape = env.observation_space.shape),
-        keras.layers.Lambda(lambda t: tf.cast(t, tf.float32) / 255.0),
+        keras.layers.Lambda(lambda t: tf.cast(t, tf.float32) / 255.0), # Irudiak dianez, hoi itebaet [0, 1] eskalan uzteitut.
         keras.layers.Conv2D(32, 8, strides = 4, activation = "relu"),
         keras.layers.Conv2D(64, 4, strides = 2, activation = "relu"),
         keras.layers.Conv2D(64, 3, strides = 1, activation = "relu"),

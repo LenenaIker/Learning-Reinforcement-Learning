@@ -15,13 +15,15 @@ tf.get_logger().setLevel("ERROR")
 
 
 import numpy as np
+from RolloutBuffer import RolloutBuffer # Ne objetua
 
 
+Z_PARTIDA = 500
+Z_INTERAKZIO_PARTIDAKO = 5000
 
-EPISODES = 500
-MAX_EPISODE_STEPS = 5000
+ZENBATEO_EGUNERATU_KRITIKOA = 2000
 
-TARGET_UPDATE_EVERY_STEPS = 2000
+ROLLOUT_LENGTH = 256
 
 DISCOUNT_FACTOR = 0.99
 LEARNING_RATE = 1e-4
@@ -31,7 +33,7 @@ LEARNING_RATE = 1e-4
 gym.register_envs(ale_py)
 env = gym.make(
     "ALE/Breakout-v5",
-    max_episode_steps = MAX_EPISODE_STEPS + 1
+    max_episode_steps = Z_INTERAKZIO_PARTIDAKO + 1
 )
 
 
@@ -44,7 +46,7 @@ actor = keras.models.Sequential([
     keras.layers.Flatten(),
     keras.layers.Dense(512, activation = "elu"),
     keras.layers.Dense(256, activation = "elu"),
-    keras.layers.Dense(env.action_space.n, activation = 'softmax')
+    keras.layers.Dense(env.action_space.n, activation = None) # Cambio de planes. Ver: neKabuz\F02_Breakout\LogProbVSlog_softmaxLogits.py
 ])
 
 
@@ -60,12 +62,57 @@ critic = keras.models.Sequential([
     keras.layers.Dense(1, activation = None)
 ])
 
-obs, info = env.reset()
-try:
-    print("Actor:    ", actor.predict(obs[np.newaxis], verbose = False))
-    print("Critic:   ", critic.predict(obs[np.newaxis], verbose = False))
-except Exception as e:
-    print(e)
+
+
+
+for partida in range(Z_PARTIDA):
+    trajectories = RolloutBuffer(ROLLOUT_LENGTH, env.observation_space.shape)
+    
+    egoera_oain, info = env.reset() # Partida hasi
+
+    lives = info.get("lives")
+    for interakzio in range(Z_INTERAKZIO_PARTIDAKO):
+        action_logits = actor(egoera_oain[np.newaxis], training = False) # Aktoreak akzio bakoitzan logitak itzultzeitu.
+        
+        # Muestreo estocastico | muestreo categórico
+        action = tf.random.categorical(action_logits, num_samples = 1) # Honek bakoitzan prob-ak kontuan izanda, gambleatu iteu ze akzio erabakitzeko. Gambleo honek explorazioan aportatzeu
+        logprobs = tf.nn.log_softmax(action_logits)
+
+        value = critic(egoera_oain[np.newaxis], training = False) # Kritikoak be balorazioa iteu.
+
+        egoera_gero, reward, terminated, truncated, info = env.step(action) # Ingurumenai aktoreak erabakitako akzioa pasateiou, ta honek ondoriozko emaitzak pasatzeizkigu
+
+
+        if np.array_equal(egoera_oain, egoera_gero):
+            reward -= 1 # Pelota sakatze eztun bitartian penalizatu.
+
+        if lives > info.get("lives"):
+            reward -= 10 # Bizitza galtzeunean zigortu
+            lives = info.get("lives")
+
+
+        trajectories.store(
+            state = egoera_oain,
+            action = action,
+            reward = reward,
+            terminated = terminated,
+            truncated = truncated,
+            logprob = logprobs[action],
+            value = value
+        )
+
+        egoera_oain = egoera_gero
+
+        if terminated or truncated:
+            print(f"\nINFO: Terminated {terminated} | Truncated {truncated}\n")
+            break
+        
+
+
+
+
+
+
 
 env.close()
 

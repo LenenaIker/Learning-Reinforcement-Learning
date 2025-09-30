@@ -41,7 +41,7 @@ actor = keras.models.Sequential([
     keras.layers.Flatten(),
     keras.layers.Dense(512, activation = "elu"),
     keras.layers.Dense(256, activation = "elu"),
-    keras.layers.Dense(env.action_space.n, activation = 'softmax') # GOATU: Akzio bakoitzai probabilitate bat emateio
+    keras.layers.Dense(env.action_space.n, activation = "softmax") # GOATU: Akzio bakoitzai probabilitate bat emateio
 ])
 
 
