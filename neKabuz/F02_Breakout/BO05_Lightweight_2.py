@@ -179,6 +179,7 @@ for partida in range(Z_PARTIDA):
     trajectories = RolloutBuffer(ROLLOUT_LENGTH, env.observation_space.shape)
     
     egoera_oain, info = env.reset()
+    egoera_oain = preprocess(egoera_oain)
 
     lives = info.get("lives")
     for interakzio in range(Z_INTERAKZIO_PARTIDAKO):
@@ -196,6 +197,7 @@ for partida in range(Z_PARTIDA):
 
         egoera_gero, reward, terminated, truncated, info = env.step(action) # Ingurumenai aktoreak erabakitako akzioa pasateiou, ta honek ondoriozko emaitzak pasatzeizkigu
         done = terminated or truncated
+        egoera_gero = preprocess(egoera_gero)
 
         # Oaingoz eztet reward shaping erabiliko
         # if np.array_equal(egoera_oain, egoera_gero):
