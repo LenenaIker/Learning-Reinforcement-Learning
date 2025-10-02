@@ -23,7 +23,7 @@ import numpy as np
 from RolloutBuffer import RolloutBuffer
 
 
-MODEL_PATH = "neKabuz\F02_Breakout\BO04_actor_critic.keras"
+MODEL_PATH = "neKabuz/F02_Breakout/BO04_actor_critic.keras"
 
 Z_PARTIDA = 500
 Z_INTERAKZIO_PARTIDAKO = 5000
@@ -46,7 +46,7 @@ env = gym.make(
     max_episode_steps = Z_INTERAKZIO_PARTIDAKO + 1
 )
 
-INPUT_SHAPE = env.observation_space.shape
+INPUT_SHAPE = (84, 84, 1) # grayscalek canalak gutxitzeitu 3 tik 1ea. resizek 84x84.
 N_ACTIONS = env.action_space.n
 
 
@@ -179,7 +179,7 @@ for partida in range(Z_PARTIDA):
     trajectories = RolloutBuffer(ROLLOUT_LENGTH, env.observation_space.shape)
     
     egoera_oain, info = env.reset()
-    egoera_oain = preprocess(egoera_oain)
+    egoera_oain = preprocess(egoera_oain).numpy()
 
     lives = info.get("lives")
     for interakzio in range(Z_INTERAKZIO_PARTIDAKO):
@@ -197,7 +197,7 @@ for partida in range(Z_PARTIDA):
 
         egoera_gero, reward, terminated, truncated, info = env.step(action) # Ingurumenai aktoreak erabakitako akzioa pasateiou, ta honek ondoriozko emaitzak pasatzeizkigu
         done = terminated or truncated
-        egoera_gero = preprocess(egoera_gero)
+        egoera_gero = preprocess(egoera_gero).numpy()
 
         # Oaingoz eztet reward shaping erabiliko
         # if np.array_equal(egoera_oain, egoera_gero):
@@ -242,7 +242,6 @@ for partida in range(Z_PARTIDA):
 
             trajectories.reset()
 
-        
         egoera_oain = egoera_gero
     print("Partida: ", partida, " / ", Z_PARTIDA)
 
