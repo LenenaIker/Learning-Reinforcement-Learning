@@ -77,8 +77,7 @@ def bifidModel():
      
 actor_critic = bifidModel()
 
-actor_optimizer = keras.optimizers.Adam(learning_rate = LEARNING_RATE)
-critic_optimizer = keras.optimizers.Adam(learning_rate = LEARNING_RATE)
+optimizer = keras.optimizers.Adam(learning_rate = LEARNING_RATE)
 huber = keras.losses.Huber(delta = 1.0) 
 
 # === Utilidades PPO/GAE ===
@@ -102,7 +101,7 @@ def compute_gae(rewards, values, dones, last_value, gamma = DISCOUNT_FACTOR, lam
       advantages: [T]
       returns:    [T] con R_t = A_t + V(s_t)
     """
-    T = len(rewards)
+    T = tf.shape(rewards)[0]
     advantages = np.zeros(T, dtype = np.float32)
     not_dones = 1.0 - dones
 
@@ -156,18 +155,15 @@ def _ppo_minibatch_step(states_mb, actions_mb, old_logprobs_mb, advantages_mb, r
         entropy_bonus = categorical_entropy_from_logits(logits)
         value_loss = huber(returns_mb, values_pred)
 
-        actor_loss = policy_loss - ENTROPY_COEF * entropy_bonus
-        critic_loss = VALUE_COEF * value_loss
+        total_loss = (policy_loss - ENTROPY_COEF * entropy_bonus + VALUE_COEF * value_loss)
 
-    actor_grads = tape.gradient(actor_loss, actor_critic.trainable_variables)
-    critic_grads = tape.gradient(critic_loss, actor_critic.trainable_variables)
+    actor_grads = tape.gradient(total_loss, actor_critic.trainable_variables)
     del tape
 
-    actor_optimizer.apply_gradients(zip(actor_grads, actor_critic.trainable_variables))
-    critic_optimizer.apply_gradients(zip(critic_grads, actor_critic.trainable_variables))
+    optimizer.apply_gradients(zip(actor_grads, actor_critic.trainable_variables))
 
     # Métricas útiles
-    approx_kl = 0.5 * tf.reduce_mean(tf.square(new_logprobs - old_logprobs_mb))
+    approx_kl = tf.reduce_mean(old_logprobs_mb - new_logprobs)
     clipfrac = tf.reduce_mean(tf.cast(tf.greater(
         tf.abs(ratio - 1.0),
         CLIP_RANGE
@@ -210,20 +206,18 @@ for partida in range(Z_PARTIDA):
     for interakzio in range(Z_INTERAKZIO_PARTIDAKO):
         action_logits, value = actor_critic(egoera_oain[np.newaxis], training = False)
         
-        # Akzioen probabilitateen deribatua
-        log_probs = tf.nn.log_softmax(action_logits)
-
-
         # Muestreo estocastico | muestreo categórico
         action = tf.random.categorical(action_logits, num_samples = 1, dtype = tf.int32) # Honek bakoitzan prob-ak kontuan izanda, gambleatu iteu ze akzio erabakitzeko. Gambleo honek explorazioan aportatzeu
         action = tf.squeeze(action, axis = -1) # Reduce dimensiones, en este caso quita la última
-        action = int(action.numpy()[0])
+        action = int(action[0])
 
+        # Akzioen probabilitateen deribatua
+        log_probs = tf.nn.log_softmax(action_logits)
+        # Akzioan probabilitatean deribatua tensoretik atea
         logprob_action = tf.gather(log_probs[0], action)
 
         egoera_gero, reward, terminated, truncated, info = env.step(action) # Ingurumenai aktoreak erabakitako akzioa pasateiou, ta honek ondoriozko emaitzak pasatzeizkigu
         done = terminated or truncated
-
 
         # Oaingoz eztet reward shaping erabiliko
         # if np.array_equal(egoera_oain, egoera_gero):
@@ -232,14 +226,13 @@ for partida in range(Z_PARTIDA):
         #     reward -= 10 # Bizitza galtzeunean zigortu
         #     lives = info.get("lives")
 
-
         trajectories.store(
             state = egoera_oain,
             action = action,
             reward = reward,
             done = done,
-            logprob = float(logprob_action.numpy()),
-            value = float(value.numpy().squeeze())
+            logprob = float(logprob_action),
+            value = float(tf.squeeze(value))
         )
 
 
@@ -247,7 +240,8 @@ for partida in range(Z_PARTIDA):
             if done:
                 last_val = 0.0
             else:
-                _, last_val = float(actor_critic(egoera_gero[np.newaxis], training = False).numpy().squeeze())
+                _, last_val = actor_critic(egoera_gero[np.newaxis], training = False)
+                last_val = float(tf.squeeze(last_val).numpy())
 
             states, actions, rewards, dones, logprobs, values = trajectories.getXPs()
         

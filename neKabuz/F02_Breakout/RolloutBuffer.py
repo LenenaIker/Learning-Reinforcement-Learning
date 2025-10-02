@@ -24,8 +24,9 @@ class RolloutBuffer:
         self.index +=  1
 
     def getXPs(self):
-        return (self.states.copy(), self.actions.copy(), self.rewards.copy(), self.dones.copy(), self.logprobs.copy(), self.values.copy())
-    
+        end = self.index
+        return (self.states[:end], self.actions[:end], self.rewards[:end], self.dones[:end], self.logprobs[:end], self.values[:end])
+
     def is_full(self):
         return self.index >= self.max
     
