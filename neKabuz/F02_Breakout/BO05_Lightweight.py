@@ -8,8 +8,10 @@
 
 import gymnasium as gym
 import ale_py
-from gymnasium.wrappers import AtariPreprocessing, FrameStack
-from gymnasium.vector import AsyncVectorEnv
+
+# Oaindik azkarrao nahi baet, hauek implementatu beharkoitut:
+# from gymnasium.wrappers import AtariPreprocessing, FrameStack
+# from gymnasium.vector import AsyncVectorEnv
 
 import keras
 import tensorflow as tf
@@ -21,7 +23,7 @@ import numpy as np
 from RolloutBuffer import RolloutBuffer
 
 
-ACTOR_MODEL_PATH = "neKabuz\F02_Breakout\BO04_actor_critic.keras"
+MODEL_PATH = "neKabuz\F02_Breakout\BO04_actor_critic.keras"
 
 Z_PARTIDA = 500
 Z_INTERAKZIO_PARTIDAKO = 5000
