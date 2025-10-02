@@ -8,6 +8,8 @@
 
 import gymnasium as gym
 import ale_py
+from gymnasium.wrappers import AtariPreprocessing, FrameStack
+from gymnasium.vector import AsyncVectorEnv
 
 import keras
 import tensorflow as tf
@@ -18,13 +20,13 @@ import numpy as np
 # NeKabuz
 from RolloutBuffer import RolloutBuffer
 
-ACTOR_MODEL_PATH = "neKabuz\F02_Breakout\BO04_actor.keras"
-CRITIC_MODEL_PATH = "neKabuz\F02_Breakout\BO04_critic.keras"
+
+ACTOR_MODEL_PATH = "neKabuz\F02_Breakout\BO04_actor_critic.keras"
 
 Z_PARTIDA = 500
 Z_INTERAKZIO_PARTIDAKO = 5000
 
-ROLLOUT_LENGTH = 512
+ROLLOUT_LENGTH = 1024 # He aumentado el tamaño para que se entrene menos veces, acelerando el proceso.
 
 DISCOUNT_FACTOR = tf.constant(0.99, tf.float32)
 LEARNING_RATE = 1e-4
@@ -41,33 +43,37 @@ env = gym.make(
     "ALE/Breakout-v5",
     max_episode_steps = Z_INTERAKZIO_PARTIDAKO + 1
 )
+
 INPUT_SHAPE = env.observation_space.shape
 N_ACTIONS = env.action_space.n
 
-actor = keras.models.Sequential([
-    keras.Input(shape = INPUT_SHAPE),
-    keras.layers.Lambda(lambda t: tf.cast(t, tf.float32) / 255.0),
-    keras.layers.Conv2D(32, 8, strides = 4, activation = "relu"),
-    keras.layers.Conv2D(64, 4, strides = 2, activation = "relu"),
-    keras.layers.Conv2D(64, 3, strides = 1, activation = "relu"),
-    keras.layers.Flatten(),
-    keras.layers.Dense(512, activation = "elu"),
-    keras.layers.Dense(256, activation = "elu"),
-    keras.layers.Dense(N_ACTIONS, activation = None) # Cambio de planes. Ver: neKabuz\F02_Breakout\LogProbVSlog_softmaxLogits.py
-])
 
+def bifidModel():
+    inputs = keras.Input(shape = INPUT_SHAPE)
 
-critic = keras.models.Sequential([
-    keras.Input(shape = INPUT_SHAPE),
-    keras.layers.Lambda(lambda t: tf.cast(t, tf.float32) / 255.0),
-    keras.layers.Conv2D(32, 8, strides = 4, activation = "relu"),
-    keras.layers.Conv2D(64, 4, strides = 2, activation = "relu"),
-    keras.layers.Conv2D(64, 3, strides = 1, activation = "relu"),
-    keras.layers.Flatten(),
-    keras.layers.Dense(512, activation = "elu"),
-    keras.layers.Dense(256, activation = "elu"),
-    keras.layers.Dense(1, activation = None)
-])
+    # Imágen a escala de grisies, reducir resolución a 84 * 84 y normalizar a [0, 1]
+    x = keras.layers.Lambda(lambda t: tf.image.resize(
+        tf.image.rgb_to_grayscale(
+            tf.cast(t, tf.float32)
+        ),
+        [84, 84]
+    ) / 255.0)(inputs)
+
+    x = keras.layers.Conv2D(32, 8, strides = 4, activation = "relu")(x)
+    x = keras.layers.Conv2D(64, 4, strides = 2, activation = "relu")(x)
+    x = keras.layers.Conv2D(64, 3, strides = 1, activation = "relu")(x)
+    x = keras.layers.Flatten()(x)
+    x = keras.layers.Dense(512, activation = "elu")(x)
+    h = keras.layers.Dense(256, activation = "elu")(x)
+
+    # Dos cabezas, ambas heredan de h, que es el resto del modelo. Ambos devuelven Logits
+    policy_logits = keras.layers.Dense(N_ACTIONS, activation = None, name = "policy_logits")(h)
+    value = keras.layers.Dense(1, activation = None, name = "value")(h)
+
+    return keras.Model(inputs = inputs, outputs = [policy_logits, value])
+
+     
+actor_critic = bifidModel()
 
 actor_optimizer = keras.optimizers.Adam(learning_rate = LEARNING_RATE)
 critic_optimizer = keras.optimizers.Adam(learning_rate = LEARNING_RATE)
@@ -134,8 +140,8 @@ def _ppo_minibatch_step(states_mb, actions_mb, old_logprobs_mb, advantages_mb, r
       - Huber loss para el crítico
     """
     with tf.GradientTape(persistent = True) as tape:
-        # Actor
-        logits = actor(states_mb, training = True) # [B, A]
+
+        logits, values_pred = actor_critic(states_mb, training = True) # [B,A], [B,1]
         
         new_logprobs = - tf.nn.sparse_softmax_cross_entropy_with_logits(labels = actions_mb, logits = logits) # [B]
 
@@ -146,22 +152,17 @@ def _ppo_minibatch_step(states_mb, actions_mb, old_logprobs_mb, advantages_mb, r
         policy_loss = - tf.reduce_mean(tf.minimum(unclipped, clipped))
 
         entropy_bonus = categorical_entropy_from_logits(logits)
+        value_loss = huber(returns_mb, values_pred)
 
-        # Crítico
-        values_pred = critic(states_mb, training = True) # [B,1]
-        values_pred = tf.squeeze(values_pred, axis = -1) # [B]
-        value_loss = huber(returns_mb, values_pred) # === tf.reduce_mean(tf.square(returns_mb - values_pred))
-
-        # Total
         actor_loss = policy_loss - ENTROPY_COEF * entropy_bonus
         critic_loss = VALUE_COEF * value_loss
 
-    actor_grads = tape.gradient(actor_loss, actor.trainable_variables)
-    critic_grads = tape.gradient(critic_loss, critic.trainable_variables)
+    actor_grads = tape.gradient(actor_loss, actor_critic.trainable_variables)
+    critic_grads = tape.gradient(critic_loss, actor_critic.trainable_variables)
     del tape
 
-    actor_optimizer.apply_gradients(zip(actor_grads, actor.trainable_variables))
-    critic_optimizer.apply_gradients(zip(critic_grads, critic.trainable_variables))
+    actor_optimizer.apply_gradients(zip(actor_grads, actor_critic.trainable_variables))
+    critic_optimizer.apply_gradients(zip(critic_grads, actor_critic.trainable_variables))
 
     # Métricas útiles
     approx_kl = 0.5 * tf.reduce_mean(tf.square(new_logprobs - old_logprobs_mb))
@@ -205,7 +206,7 @@ for partida in range(Z_PARTIDA):
 
     lives = info.get("lives")
     for interakzio in range(Z_INTERAKZIO_PARTIDAKO):
-        action_logits = actor(egoera_oain[np.newaxis], training = False) # Aktoreak akzio bakoitzan logitak itzultzeitu.
+        action_logits, value = actor_critic(egoera_oain[np.newaxis], training = False)
         
         # Akzioen probabilitateen deribatua
         log_probs = tf.nn.log_softmax(action_logits)
@@ -218,19 +219,16 @@ for partida in range(Z_PARTIDA):
 
         logprob_action = tf.gather(log_probs[0], action)
 
-        value = critic(egoera_oain[np.newaxis], training = False) # Kritikoak be balorazioa iteu.
-
         egoera_gero, reward, terminated, truncated, info = env.step(action) # Ingurumenai aktoreak erabakitako akzioa pasateiou, ta honek ondoriozko emaitzak pasatzeizkigu
         done = terminated or truncated
 
 
-        if np.array_equal(egoera_oain, egoera_gero):
-            # reward -= 1 # Pelota sakatze eztun bitartian penalizatu.
-            pass # Oaingoz eztet reward shaping erabiliko
-
-        if lives > info.get("lives"):
-            # reward -= 10 # Bizitza galtzeunean zigortu
-            lives = info.get("lives")
+        # Oaingoz eztet reward shaping erabiliko
+        # if np.array_equal(egoera_oain, egoera_gero):
+        #     reward -= 1 # Pelota sakatze eztun bitartian penalizatu.
+        # if lives > info.get("lives"):
+        #     reward -= 10 # Bizitza galtzeunean zigortu
+        #     lives = info.get("lives")
 
 
         trajectories.store(
@@ -247,7 +245,7 @@ for partida in range(Z_PARTIDA):
             if done:
                 last_val = 0.0
             else:
-                last_val = float(critic(egoera_gero[np.newaxis], training = False).numpy().squeeze())
+                _, last_val = float(actor_critic(egoera_gero[np.newaxis], training = False).numpy().squeeze())
 
             states, actions, rewards, dones, logprobs, values = trajectories.getXPs()
         
@@ -264,8 +262,7 @@ for partida in range(Z_PARTIDA):
         egoera_oain = egoera_gero
     print("Partida: ", partida, " / ", Z_PARTIDA)
 
-actor.save(ACTOR_MODEL_PATH)
-critic.save(CRITIC_MODEL_PATH)
+actor_critic.save(MODEL_PATH)
 
 env.close()
 
@@ -273,9 +270,3 @@ env.close()
 # Gauzak geoz ta hobeto ulertzeitut, hoi bai. Código hau ezin det ne ordenagaiuan exekutatu. RunPot erabiltzeko intentzioak dazkat.
 # Ia ordu bat eon da, ta eztu partida bat bukatu. 500 ditu jolasteko XD.
 # Gepetok esateit Grayscale erabiltzeko ta modelo bifido bakarra definitzeko actor ta critic-en ordez.
-
-# Etorkizuneako hobekuntzak:
-# Bi modelo izateak, códigoa intuitiboagoa ta irakurgarriagoa izaten launtzeu, baino pixua gehitzeu
-# Modeloak irudi osoakin elikatzeitut. Grayscalekin pixu asko kendukot
-# Rollout haundiagoa jarrita, geldialdi gutxio ingoitut entrenatzeko
-# Akats batzuk nitun efizientzia kentzen ziatenak
