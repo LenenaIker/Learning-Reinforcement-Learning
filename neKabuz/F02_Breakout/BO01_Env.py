@@ -9,7 +9,7 @@ MAX_EPISODE_STEPS = 100
 
 env = gym.make("ALE/Breakout-v5", render_mode = "human", max_episode_steps = MAX_EPISODE_STEPS + 1)
 
-print("Action space: ", env.action_space.n)
+print("Action space: ", env.action_space.n, " Action names:\n", env.unwrapped.get_action_meanings())
 print("Observations/State: ", env.observation_space.shape)
 
 
@@ -17,6 +17,7 @@ obs, info = env.reset()
 
 print("Obs: ", obs, " | Info: ",  info)
 
+print("Bizitzak: ", info.get("lives"),"\n")
 
 OBS_LOWS = env.observation_space.low.astype(np.float32)
 OBS_HIGHS = env.observation_space.high.astype(np.float32)
