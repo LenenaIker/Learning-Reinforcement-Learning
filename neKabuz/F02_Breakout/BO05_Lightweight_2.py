@@ -54,7 +54,7 @@ N_ACTIONS = env.action_space.n
 # Imágen a escala de grisies, reducir resolución a 84 * 84
 def preprocess(obs):
     x = tf.image.rgb_to_grayscale(obs)
-    x = tf.image.resize(x, [84,84], method='area')
+    x = tf.image.resize(x, [84,84], method = 'area')
     return tf.cast(x, tf.uint8)
 
 
@@ -122,7 +122,7 @@ def compute_gae_tf(rewards, values, dones, last_value, gamma = DISCOUNT_FACTOR, 
 
 
 
-@tf.function(jit_compile = True)
+
 def _ppo_minibatch_step(states_mb, actions_mb, old_logprobs_mb, advantages_mb, returns_mb):
     """
     Paso de optimización PPO sobre un minibatch, usando:
@@ -176,7 +176,7 @@ def ppo_update_tf(states, actions, old_logprobs, advantages, returns, epochs = T
 
 
 for partida in range(Z_PARTIDA):
-    trajectories = RolloutBuffer(ROLLOUT_LENGTH, env.observation_space.shape)
+    trajectories = RolloutBuffer(ROLLOUT_LENGTH, INPUT_SHAPE)
     
     egoera_oain, info = env.reset()
     egoera_oain = preprocess(egoera_oain).numpy()
@@ -243,13 +243,21 @@ for partida in range(Z_PARTIDA):
             trajectories.reset()
 
         egoera_oain = egoera_gero
-    print("Partida: ", partida, " / ", Z_PARTIDA)
 
+        if interakzio % 250 == 0:
+            print("\nPartida: ", partida, " / ", Z_PARTIDA, "\nStep: ", interakzio, " / ", Z_INTERAKZIO_PARTIDAKO)
 actor_critic.save(MODEL_PATH)
 
 env.close()
 
 
-# Gauzak geoz ta hobeto ulertzeitut, hoi bai. Código hau ezin det ne ordenagaiuan exekutatu. RunPot erabiltzeko intentzioak dazkat.
-# Ia ordu bat eon da, ta eztu partida bat bukatu. 500 ditu jolasteko XD.
-# Gepetok esateit Grayscale erabiltzeko ta modelo bifido bakarra definitzeko actor ta critic-en ordez.
+# Partida bat bi minututan jolastu du honek.
+# 2 min * 500 partida = 1000 minutu
+# 1000 / 60 = 16.66 h
+
+# Ta hoi, kontuan izan gabe agian geroz ta gehio iraungoutela partidek
+# (eztet uste MountainCarren bezain beste haunditukoanik, ze rolloutBuffer berridazten doa, ezta tamainaz haunditzen.)
+
+# Halatare denboa asko da. Bai o bai wrapperrak edo TF-Agents liburutegia erabili beharkot.
+# Edo RunPot-en bota entrenatzeko.
+
