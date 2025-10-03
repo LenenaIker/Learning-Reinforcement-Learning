@@ -54,7 +54,7 @@ N_ACTIONS = env.action_space.n
 # Imágen a escala de grisies, reducir resolución a 84 * 84
 def preprocess(obs):
     x = tf.image.rgb_to_grayscale(obs)
-    x = tf.image.resize(x, [84,84], method = 'area')
+    x = tf.image.resize(x, [84,84], method = "area")
     return tf.cast(x, tf.uint8)
 
 
@@ -62,7 +62,7 @@ def bifidModel():
     inputs = keras.Input(shape = INPUT_SHAPE, dtype = tf.uint8)
 
     # Normalizar a [0, 1]
-    x = keras.layers.Rescaling(scale = 1./255, dtype = 'float32')(inputs)
+    x = keras.layers.Rescaling(scale = 1.0 / 255, dtype = "float32")(inputs)
 
     x = keras.layers.Conv2D(32, 8, strides = 4, activation = "relu")(x)
     x = keras.layers.Conv2D(64, 4, strides = 2, activation = "relu")(x)

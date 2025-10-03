@@ -89,7 +89,7 @@ else:
         keras.layers.Flatten(),
         keras.layers.Dense(512, activation = "elu"),
         keras.layers.Dense(256, activation = "elu"),
-        keras.layers.Dense(env.action_space.n, activation = 'softmax')
+        keras.layers.Dense(env.action_space.n, activation = "softmax")
     ])
 
 # Double DQN

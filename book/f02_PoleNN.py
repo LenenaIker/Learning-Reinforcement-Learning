@@ -59,7 +59,7 @@ def discount_and_normalize_rewards(all_rewards, discount_factor):
 if __name__ == "__main__":
         
     env = gym.make("CartPole-v1", render_mode = "human")
-    MODEL_PATH = 'f02_PoleModel.h5'
+    MODEL_PATH = "f02_PoleModel.h5"
 
     if os.path.exists(MODEL_PATH):
         model = keras.models.load_model(MODEL_PATH)
