@@ -1,19 +1,20 @@
 import numpy as np
 
 # Replay bufferrren berdina, baino kasu hontan objetu hau erabiliz, efizienteagoa izangoa numpy erabiltzeulako
-class RolloutBuffer:
-    def __init__(self, rollout_length, obs_shape):
-        self.MAX = rollout_length
-        self.states = np.zeros((self.MAX, ) + obs_shape, dtype = np.uint8)
-        self.actions = np.zeros((self.MAX, ), dtype = np.int32)
-        self.rewards = np.zeros((self.MAX, ), dtype = np.float32)
-        self.dones = np.zeros((self.MAX, ), dtype = np.bool_)
-        self.logprobs = np.zeros((self.MAX, ), dtype = np.float32)
-        self.values = np.zeros((self.MAX, ), dtype = np.float32)
+class RolloutBufferBatched:
+    def __init__(self, rollout_length, obs_shape, n_envs):
+        self.LENGTH = rollout_length
+        self.N_ENVS = n_envs
+        self.states = np.zeros((self.LENGTH, self.N_ENVS) + obs_shape, dtype = np.uint8)
+        self.actions = np.zeros((self.LENGTH, self.N_ENVS), dtype = np.int32)
+        self.rewards = np.zeros((self.LENGTH, self.N_ENVS), dtype = np.float32)
+        self.dones = np.zeros((self.LENGTH, self.N_ENVS), dtype = np.bool_)
+        self.logprobs = np.zeros((self.LENGTH, self.N_ENVS), dtype = np.float32)
+        self.values = np.zeros((self.LENGTH, self.N_ENVS), dtype = np.float32)
         self.index = 0
 
     
-    def store(self, state, action, reward, done, logprob, value):
+    def store_batch(self, state, action, reward, done, logprob, value):
         if self.is_full(): raise IndexError("RolloutBuffer lleno.")
         self.states[self.index] = state
         self.actions[self.index] = action
@@ -28,7 +29,7 @@ class RolloutBuffer:
         return (self.states[:end], self.actions[:end], self.rewards[:end], self.dones[:end], self.logprobs[:end], self.values[:end])
 
     def is_full(self):
-        return self.index >= self.MAX
+        return self.index >= self.LENGTH
     
     def size(self):
         return self.index

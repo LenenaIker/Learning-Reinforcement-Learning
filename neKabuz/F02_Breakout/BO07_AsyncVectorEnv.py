@@ -2,7 +2,9 @@ import gymnasium as gym
 import ale_py
 
 from gymnasium.wrappers import AtariPreprocessing, FrameStackObservation, TransformObservation
+
 from gymnasium.vector import AsyncVectorEnv
+import multiprocessing as mp
 
 import keras
 import tensorflow as tf
@@ -11,7 +13,7 @@ tf.get_logger().setLevel("ERROR")
 import numpy as np
 from datetime import datetime
 
-from RolloutBuffer import RolloutBuffer
+from RolloutBufferBatched import RolloutBufferBatched
 
 
 MODEL_PATH = "neKabuz/F02_Breakout/BO04_actor_critic.keras"
@@ -34,6 +36,16 @@ N_ENVS = 8
 SCREEN_SIZE = 84
 FRAME_SKIP = 4
 FRAME_STACK = 4
+
+INPUT_SHAPE = None
+N_ACTIONS = None
+
+
+actor_critic = None
+optimizer = keras.optimizers.Adam(learning_rate = LEARNING_RATE)
+huber = keras.losses.Huber(delta = 1.0) 
+
+
 
 def make_env(seed: int):
     def thunk():
@@ -66,11 +78,13 @@ def make_env(seed: int):
         return env
     return thunk
 
-env = AsyncVectorEnv([make_env(seed = i) for i in range(N_ENVS)])
+def build_env():
+    # fuerza 'spawn' para máxima compatibilidad (Windows/macOS/notebooks)
+    return AsyncVectorEnv(
+        [make_env(seed = i) for i in range(N_ENVS)],
+        context = "spawn"
+    )
 
-
-INPUT_SHAPE = env.single_observation_space.shape
-N_ACTIONS = env.single_action_space.n
 
 
 def bifidModel():
@@ -92,11 +106,6 @@ def bifidModel():
     return keras.Model(inputs = inputs, outputs = [policy_logits, value])
 
      
-actor_critic = bifidModel()
-
-optimizer = keras.optimizers.Adam(learning_rate = LEARNING_RATE)
-huber = keras.losses.Huber(delta = 1.0) 
-
 
 def categorical_entropy_from_logits(logits: tf.Tensor) -> tf.Tensor:
     """
@@ -191,75 +200,86 @@ def ppo_update_tf(states, actions, old_logprobs, advantages, returns, epochs = T
             _ = _ppo_minibatch_step(states_mb, actions_mb, old_lp_mb, adv_mb, ret_mb)
 
 
-start = datetime.now()
-for partida in range(Z_PARTIDA):
-    rollout = RolloutBuffer(ROLLOUT_LENGTH, INPUT_SHAPE)
-    
-    obs, infos = env.reset()
 
-    lives = infos.get("lives")
-    for interakzio in range(Z_INTERAKZIO_PARTIDAKO):
-        logits, values = actor_critic(tf.convert_to_tensor(obs, tf.uint8), training = False)
-        
-        actions = tf.squeeze(tf.random.categorical(
-            logits,
-            num_samples = 1,
-            dtype = tf.int32
-        ), axis = -1)
-        
-        log_probs = tf.nn.log_softmax(logits, axis = -1)
+def train():
+    global INPUT_SHAPE, N_ACTIONS, actor_critic
 
-        idx = tf.stack([tf.range(N_ENVS, dtype = tf.int32), actions], axis = 1)
-        logprob_action = tf.gather(log_probs, idx)
+    env = build_env()
+    if not INPUT_SHAPE or not N_ACTIONS or not actor_critic:
+        INPUT_SHAPE = env.single_observation_space.shape
+        N_ACTIONS = env.single_action_space.n        
+        actor_critic = bifidModel()
 
-        next_obs, rewards, terminateds, truncateds, infos = env.step(actions.numpy()) 
-        dones = np.logical_or(terminateds, truncateds)
 
-        rollout.store(
-            state = obs,
-            action = actions.numpy(),
-            reward = rewards,
-            done = dones,
-            logprob = logprob_action.numpy(),
-            value = tf.squeeze(values, axis = -1).numpy()
-        )
+    rollout = RolloutBufferBatched(ROLLOUT_LENGTH, INPUT_SHAPE, N_ENVS)
+    start = datetime.now()
+    for partida in range(Z_PARTIDA):
+        obs, infos = env.reset()
 
-        obs = next_obs
-
-        if rollout.is_full():
-            _, last_val = actor_critic(tf.convert_to_tensor(next_obs, tf.uint8), training = False) # (N, 1)
-            last_val = tf.squeeze(last_val, axis = -1) # (N, )
-
-            states, actions_b, rewards_b, dones_b, logprobs_b, values_b = rollout.getXPs()
-        
-            advantages, returns = compute_gae_tf_batched(
-                tf.convert_to_tensor(rewards_b, tf.float32),
-                tf.convert_to_tensor(values_b, tf.float32),
-                tf.convert_to_tensor(dones_b, tf.bool),
-                last_val
-            )
+        for interakzio in range(Z_INTERAKZIO_PARTIDAKO):
+            logits, values = actor_critic(tf.convert_to_tensor(obs, tf.uint8), training = False)
             
-            T = states.shape[0]
-            states_tf = tf.reshape(tf.convert_to_tensor(states, tf.uint8), (T * N_ENVS,) + INPUT_SHAPE)
-            actions_tf = tf.reshape(tf.convert_to_tensor(actions_b, tf.int32), (T * N_ENVS,))
-            oldlp_tf = tf.reshape(tf.convert_to_tensor(logprobs_b, tf.float32), (T * N_ENVS,))
-            adv_tf = tf.reshape(advantages, (T * N_ENVS,))
-            ret_tf = tf.reshape(returns, (T * N_ENVS,))
+            actions = tf.squeeze(tf.random.categorical(
+                logits,
+                num_samples = 1,
+                dtype = tf.int32
+            ), axis = -1)
+            
+            log_probs = tf.nn.log_softmax(logits, axis = -1)
 
-            ppo_update_tf(
-                states,
-                actions,
-                oldlp_tf,
-                advantages,
-                returns
+            idx = tf.stack([tf.range(N_ENVS, dtype = tf.int32), actions], axis = 1)
+            logprob_action = tf.gather_nd(log_probs, idx)
+
+            next_obs, rewards, terminateds, truncateds, infos = env.step(actions.numpy()) 
+            dones = np.logical_or(terminateds, truncateds)
+
+            rollout.store_batch(
+                state = obs,
+                action = actions.numpy(),
+                reward = rewards,
+                done = dones,
+                logprob = logprob_action.numpy(),
+                value = tf.squeeze(values, axis = -1).numpy()
             )
 
-            rollout.reset()
+            obs = next_obs
 
-        if interakzio % 250 == 0:
-            print("\nPartida: ", partida, " / ", Z_PARTIDA, "\nStep: ", interakzio, " / ", Z_INTERAKZIO_PARTIDAKO, "\nTime: ", datetime.now() - start)
-actor_critic.save(MODEL_PATH)
+            if rollout.is_full():
+                _, last_val = actor_critic(tf.convert_to_tensor(next_obs, tf.uint8), training = False) # (N, 1)
+                last_val = tf.squeeze(last_val, axis = -1) # (N, )
 
-env.close()
+                states, actions_b, rewards_b, dones_b, logprobs_b, values_b = rollout.getXPs()
+            
+                advantages, returns = compute_gae_tf_batched(
+                    tf.convert_to_tensor(rewards_b, tf.float32),
+                    tf.convert_to_tensor(values_b, tf.float32),
+                    tf.convert_to_tensor(dones_b, tf.bool),
+                    last_val
+                )
+                
+                T = states.shape[0]
+                states_tf = tf.reshape(tf.convert_to_tensor(states, tf.uint8), (T * N_ENVS,) + INPUT_SHAPE)
+                actions_tf = tf.reshape(tf.convert_to_tensor(actions_b, tf.int32), (T * N_ENVS,))
+                oldlp_tf = tf.reshape(tf.convert_to_tensor(logprobs_b, tf.float32), (T * N_ENVS,))
+                adv_tf = tf.reshape(advantages, (T * N_ENVS,))
+                ret_tf = tf.reshape(returns, (T * N_ENVS,))
 
+                ppo_update_tf(states_tf, actions_tf, oldlp_tf, adv_tf, ret_tf)
 
+                rollout.reset()
+
+            if interakzio % 250 == 0:
+                print("\nPartida: ", partida, " / ", Z_PARTIDA, "\nStep: ", interakzio, " / ", Z_INTERAKZIO_PARTIDAKO, "\nTime: ", datetime.now() - start)
+    actor_critic.save(MODEL_PATH)
+
+    env.close()
+
+if __name__ == "__main__":
+    try:
+        mp.set_start_method("spawn", force = True)
+    except RuntimeError as e:
+        print(e)
+
+    # if .exe with PyInstaller:
+    # mp.freeze_support()
+    train()
