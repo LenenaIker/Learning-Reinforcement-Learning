@@ -31,8 +31,7 @@ class RolloutBufferBatched:
     def is_full(self):
         return self.index >= self.LENGTH
     
-    def size(self):
-        return self.index
+    def __len__(self): return self.index
 
     def reset(self):
         self.index = 0

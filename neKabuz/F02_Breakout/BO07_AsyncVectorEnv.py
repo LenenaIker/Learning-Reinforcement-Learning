@@ -1,5 +1,6 @@
 import gymnasium as gym
 import ale_py
+gym.register_envs(ale_py)
 
 from gymnasium.wrappers import AtariPreprocessing, FrameStackObservation, TransformObservation
 
@@ -12,11 +13,12 @@ tf.get_logger().setLevel("ERROR")
 
 import numpy as np
 from datetime import datetime
+import os
 
 from RolloutBufferBatched import RolloutBufferBatched
 
 
-MODEL_PATH = "neKabuz/F02_Breakout/BO04_actor_critic.keras"
+MODEL_PATH = "BO07_actor_critic.keras"
 
 Z_PARTIDA = 500
 Z_INTERAKZIO_PARTIDAKO = 5000
@@ -42,14 +44,13 @@ N_ACTIONS = None
 
 
 actor_critic = None
-optimizer = keras.optimizers.Adam(learning_rate = LEARNING_RATE)
+optimizer = keras.optimizers.Adam(learning_rate = LEARNING_RATE, clipnorm = 0.5)
 huber = keras.losses.Huber(delta = 1.0) 
 
 
 
 def make_env(seed: int):
     def thunk():
-        gym.register_envs(ale_py)
         env = gym.make(
             "ALE/Breakout-v5",
             max_episode_steps = Z_INTERAKZIO_PARTIDAKO + 1,
@@ -66,7 +67,7 @@ def make_env(seed: int):
         # Al usar FrameStack, el shape cambia, hay que adaptarlo con lo de abajo:
         env = TransformObservation(
             env = env,
-            func = lambda obs: tf.transpose(obs, (1, 2, 0)),
+            func = lambda obs: np.transpose(obs, (1, 2, 0)),
             observation_space = gym.spaces.Box(
                 low = 0,
                 high = 255,
@@ -190,7 +191,7 @@ def make_ds(states, actions, old_logprobs, advantages, returns, batch_size):
     ds = tf.data.Dataset.from_tensor_slices((
         states, actions, old_logprobs, advantages, returns
     ))
-    return ds.shuffle(8192, reshuffle_each_iteration = True).batch(batch_size, drop_remainder = True)
+    return ds.shuffle(8192, reshuffle_each_iteration = True).batch(batch_size, drop_remainder = True).prefetch(tf.data.AUTOTUNE)
 
 
 def ppo_update_tf(states, actions, old_logprobs, advantages, returns, epochs = TRAIN_EPOCHS, bs = MINIBATCH_SIZE):
@@ -268,8 +269,9 @@ def train():
 
                 rollout.reset()
 
-            if interakzio % 250 == 0:
-                print("\nPartida: ", partida, " / ", Z_PARTIDA, "\nStep: ", interakzio, " / ", Z_INTERAKZIO_PARTIDAKO, "\nTime: ", datetime.now() - start)
+        print("\nPartida: ", partida, " / ", Z_PARTIDA, "\nTime: ", datetime.now() - start)
+
+    os.makedirs(os.path.dirname(MODEL_PATH), exist_ok = True)
     actor_critic.save(MODEL_PATH)
 
     env.close()
