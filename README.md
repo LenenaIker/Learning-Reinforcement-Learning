@@ -23,3 +23,5 @@ ALE/Breakout-v5
   - In BO03, I understand that PPO uses an actor and a model.
   - In BP04, I understand that I need to change the way experiences are stored --> RolloutBuffer.py. I am also beginning to understand how PPO works thanks to Gepeto's codes. Furthermore, I discover that I won't be able to run that on my laptop.
   - In BO05_Lightweight_1 and BO05_Lightweight_2, I try to make the code as efficient as possible. I finally understand that it's still too much for my laptop, and that I'll have to resort to Wrappers or even computing services like RunPod.
+  - In BO06_Preproc_FrameStack, I implement AtariPreprocessing and FrameStack. The time for the first game is still around three minutes and a bit.
+  - In BO07_AsyncVectorEnv, I manage to launch several environments at once, eight in my case. This reduces the time of the first game from a little over 3 minutes to 1 minute and 58 seconds. Keep in mind that the learning phase is just as heavy; what I reduce is the time of the steps.
