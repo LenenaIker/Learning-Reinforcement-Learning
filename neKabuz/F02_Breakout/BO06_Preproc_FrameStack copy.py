@@ -1,24 +1,16 @@
-# Interneten beidatuz PPO implementatzeko 2 aukera didtutelan konklusiora iritsi naiz.
-#   1. Bi modelo definitu, Actor ta Critic. Aktoreak ekintzak erabakitzeitu ta Kritikoak, Aktorean erabakiak baloratukoitu (nota eman)
-#
-#   2. Modelo bifido bat definitu
-#       Gorputza berdina izangoa, baino azken layerra ezta layer 1 izango, 2 layer independiente izangoia. Goikoan berdina iteutenak
-#   
-#   Gepetok esateu bigarren aukera merkeagoa dala entrenatzeko, baño ne ustez lehen aukera hobeto ulertzea.
-
 import gymnasium as gym
 import ale_py
 
-# Oaindik azkarrao nahi baet, hauek implementatu beharkoitut:
-# from gymnasium.wrappers import AtariPreprocessing, FrameStack
+from gymnasium.wrappers import AtariPreprocessing, FrameStackObservation, TransformObservation
 # from gymnasium.vector import AsyncVectorEnv
 
 import keras
 import tensorflow as tf
 tf.get_logger().setLevel("ERROR")
 
+import numpy as np
+from datetime import datetime
 
-# NeKabuz
 from RolloutBuffer import RolloutBuffer
 
 
@@ -27,7 +19,7 @@ MODEL_PATH = "neKabuz/F02_Breakout/BO04_actor_critic.keras"
 Z_PARTIDA = 500
 Z_INTERAKZIO_PARTIDAKO = 5000
 
-ROLLOUT_LENGTH = 1024 # He aumentado el tamaño para que se entrene menos veces, acelerando el proceso.
+ROLLOUT_LENGTH = 1024 
 
 DISCOUNT_FACTOR = tf.constant(0.99, tf.float32)
 LEARNING_RATE = 1e-4
@@ -38,30 +30,44 @@ VALUE_COEF = 0.5
 TRAIN_EPOCHS = 4
 MINIBATCH_SIZE = 256
 
+SCREEN_SIZE = 84
+FRAME_SKIP = 4
+FRAME_STACK = 4
 
 gym.register_envs(ale_py)
 env = gym.make(
     "ALE/Breakout-v5",
-    max_episode_steps = Z_INTERAKZIO_PARTIDAKO + 1
+    max_episode_steps = Z_INTERAKZIO_PARTIDAKO + 1,
+    frameskip = 1
+)
+env = AtariPreprocessing(
+    env,
+    screen_size = SCREEN_SIZE,
+    grayscale_obs = True,
+    frame_skip = FRAME_SKIP,
+    noop_max = 30
+)
+env = FrameStackObservation(env, stack_size = FRAME_STACK)
+# Al usar FrameStack, el shape cambia, hay que adaptarlo con lo de abajo:
+env = TransformObservation(
+    env = env,
+    func = lambda obs: tf.transpose(obs, (1, 2, 0)),
+    observation_space = gym.spaces.Box(
+        low = 0,
+        high = 255,
+        shape = (SCREEN_SIZE, SCREEN_SIZE, FRAME_STACK),
+        dtype = np.uint8
+    )
 )
 
-INPUT_SHAPE = (84, 84, 1) # grayscalek canalak gutxitzeitu 3 tik 1ea. resizek 84x84.
+INPUT_SHAPE = env.observation_space.shape
 N_ACTIONS = env.action_space.n
-
-
-# Preprocesado de imágen fuera del modelo. Así ahorro a la hora de guardar en el buffer y a la hora de entrenar. (forward más ligero)
-# Imágen a escala de grisies, reducir resolución a 84 * 84
-def preprocess(obs):
-    x = tf.image.rgb_to_grayscale(obs)
-    x = tf.image.resize(x, [84,84], method = "area")
-    return tf.cast(x, tf.uint8)
 
 
 def bifidModel():
     inputs = keras.Input(shape = INPUT_SHAPE, dtype = tf.uint8)
 
-    # Normalizar a [0, 1]
-    x = keras.layers.Rescaling(scale = 1.0 / 255, dtype = "float32")(inputs)
+    x = keras.layers.Rescaling(scale = 1.0 / 255.0, dtype = "float32")(inputs)
 
     x = keras.layers.Conv2D(32, 8, strides = 4, activation = "relu")(x)
     x = keras.layers.Conv2D(64, 4, strides = 2, activation = "relu")(x)
@@ -69,10 +75,8 @@ def bifidModel():
 
     x = keras.layers.Flatten()(x)
 
-    x = keras.layers.Dense(512, activation = "elu")(x)
-    h = keras.layers.Dense(256, activation = "elu")(x)
-
-    # Dos cabezas, ambas heredan de h, que es el resto del modelo. Ambos devuelven Logits
+    h = keras.layers.Dense(512, activation = "relu")(x)
+    
     policy_logits = keras.layers.Dense(N_ACTIONS, activation = None, name = "policy_logits")(h)
     value = keras.layers.Dense(1, activation = None, name = "value")(h)
 
@@ -84,7 +88,7 @@ actor_critic = bifidModel()
 optimizer = keras.optimizers.Adam(learning_rate = LEARNING_RATE)
 huber = keras.losses.Huber(delta = 1.0) 
 
-# === Utilidades PPO/GAE ===
+
 def categorical_entropy_from_logits(logits: tf.Tensor) -> tf.Tensor:
     """
     Entropía media de la política categórica a partir de logits.
@@ -97,7 +101,7 @@ def categorical_entropy_from_logits(logits: tf.Tensor) -> tf.Tensor:
 
 @tf.function(jit_compile = True)
 def compute_gae_tf(rewards, values, dones, last_value, gamma = DISCOUNT_FACTOR, lam = GAE_LAMBDA):
-    # rewards, values, dones: [T] float32 / bool
+    
     not_dones = 1. - tf.cast(dones, tf.float32)
     v_next = tf.concat([values[1:], tf.reshape(tf.cast(last_value, tf.float32), [1])], 0)
     deltas = rewards + gamma * v_next * not_dones - values
@@ -130,18 +134,18 @@ def _ppo_minibatch_step(states_mb, actions_mb, old_logprobs_mb, advantages_mb, r
     """
     with tf.GradientTape(persistent = True) as tape:
 
-        logits, values_pred = actor_critic(states_mb, training = True) # [B,A], [B,1]
+        logits, values_pred = actor_critic(states_mb, training = True) 
         
-        new_logprobs = - tf.nn.sparse_softmax_cross_entropy_with_logits(labels = actions_mb, logits = logits) # [B]
+        new_logprobs = - tf.nn.sparse_softmax_cross_entropy_with_logits(labels = actions_mb, logits = logits) 
 
-        ratio = tf.exp(new_logprobs - old_logprobs_mb) # [B]
+        ratio = tf.exp(new_logprobs - old_logprobs_mb) 
 
         unclipped = ratio * advantages_mb
         clipped = tf.clip_by_value(ratio, 1.0 - CLIP_RANGE, 1.0 + CLIP_RANGE) * advantages_mb
         policy_loss = - tf.reduce_mean(tf.minimum(unclipped, clipped))
 
         entropy_bonus = categorical_entropy_from_logits(logits)
-        value_loss = huber(returns_mb, values_pred)
+        value_loss = huber(returns_mb, tf.squeeze(values_pred, axis = -1))
 
         total_loss = (policy_loss - ENTROPY_COEF * entropy_bonus + VALUE_COEF * value_loss)
 
@@ -150,7 +154,7 @@ def _ppo_minibatch_step(states_mb, actions_mb, old_logprobs_mb, advantages_mb, r
 
     optimizer.apply_gradients(zip(actor_grads, actor_critic.trainable_variables))
 
-    # Métricas útiles
+    
     approx_kl = tf.reduce_mean(old_logprobs_mb - new_logprobs)
     clipfrac = tf.reduce_mean(tf.cast(tf.greater(
         tf.abs(ratio - 1.0),
@@ -174,36 +178,29 @@ def ppo_update_tf(states, actions, old_logprobs, advantages, returns, epochs = T
             _ = _ppo_minibatch_step(states_mb, actions_mb, old_lp_mb, adv_mb, ret_mb)
 
 
+start = datetime.now()
 for partida in range(Z_PARTIDA):
     trajectories = RolloutBuffer(ROLLOUT_LENGTH, INPUT_SHAPE)
     
     egoera_oain, info = env.reset()
-    egoera_oain = preprocess(egoera_oain).numpy()
 
     lives = info.get("lives")
     for interakzio in range(Z_INTERAKZIO_PARTIDAKO):
-        action_logits, value = actor_critic(egoera_oain[np.newaxis], training = False)
+        action_logits, value = actor_critic(egoera_oain[tf.newaxis, :], training = False)
         
-        # Muestreo estocastico | muestreo categórico
-        action = tf.random.categorical(action_logits, num_samples = 1, dtype = tf.int32) # Honek bakoitzan prob-ak kontuan izanda, gambleatu iteu ze akzio erabakitzeko. Gambleo honek explorazioan aportatzeu
-        action = tf.squeeze(action, axis = -1) # Reduce dimensiones, en este caso quita la última
+        
+        action = tf.random.categorical(action_logits, num_samples = 1, dtype = tf.int32) 
+        action = tf.squeeze(action, axis = -1) 
         action = int(action[0])
 
-        # Akzioen probabilitateen deribatua
+        
         log_probs = tf.nn.log_softmax(action_logits)
-        # Akzioan probabilitatean deribatua tensoretik atea
+        
         logprob_action = tf.gather(log_probs[0], action)
 
-        egoera_gero, reward, terminated, truncated, info = env.step(action) # Ingurumenai aktoreak erabakitako akzioa pasateiou, ta honek ondoriozko emaitzak pasatzeizkigu
+        egoera_gero, reward, terminated, truncated, info = env.step(action) 
         done = terminated or truncated
-        egoera_gero = preprocess(egoera_gero).numpy()
 
-        # Oaingoz eztet reward shaping erabiliko
-        # if np.array_equal(egoera_oain, egoera_gero):
-        #     reward -= 1 # Pelota sakatze eztun bitartian penalizatu.
-        # if lives > info.get("lives"):
-        #     reward -= 10 # Bizitza galtzeunean zigortu
-        #     lives = info.get("lives")
 
         trajectories.store(
             state = egoera_oain,
@@ -219,7 +216,7 @@ for partida in range(Z_PARTIDA):
             if done:
                 last_val = tf.zeros((), tf.float32)
             else:
-                _, last_val = actor_critic(egoera_gero[tf.newaxis, ...], training = False)
+                _, last_val = actor_critic(egoera_gero[tf.newaxis, :], training = False)
                 last_val = tf.squeeze(last_val)
 
             states, actions, rewards, dones, logprobs, values = trajectories.getXPs()
@@ -244,19 +241,19 @@ for partida in range(Z_PARTIDA):
         egoera_oain = egoera_gero
 
         if interakzio % 250 == 0:
-            print("\nPartida: ", partida, " / ", Z_PARTIDA, "\nStep: ", interakzio, " / ", Z_INTERAKZIO_PARTIDAKO)
+            print("\nPartida: ", partida, " / ", Z_PARTIDA, "\nStep: ", interakzio, " / ", Z_INTERAKZIO_PARTIDAKO, "\nTime: ", datetime.now() - start)
 actor_critic.save(MODEL_PATH)
 
 env.close()
 
 
-# Partida bat bi minututan jolastu du honek.
-# 2 min * 500 partida = 1000 minutu
-# 1000 / 60 = 16.66 h
 
-# Ta hoi, kontuan izan gabe agian geroz ta gehio iraungoutela partidek
-# (eztet uste MountainCarren bezain beste haunditukoanik, ze rolloutBuffer berridazten doa, ezta tamainaz haunditzen.)
 
-# Halatare denboa asko da. Bai o bai wrapperrak edo TF-Agents liburutegia erabili beharkot.
-# Edo RunPot-en bota entrenatzeko.
+
+
+
+
+
+
+
 
