@@ -8,7 +8,7 @@ gym.register_envs(ale_py)
 from gymnasium.wrappers import AtariPreprocessing, FrameStackObservation, TransformObservation
 from gymnasium.utils.save_video import save_video
 
-MODEL_PATH = "neKabuz/F02_Breakout/BO08_75e.keras"
+MODEL_PATH = "neKabuz/F02_Breakout/BO08_actor_critic.keras"
 SCREEN_SIZE = 84
 FRAME_SKIP = 4
 FRAME_STACK = 4

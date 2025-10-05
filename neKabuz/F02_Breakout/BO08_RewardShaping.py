@@ -240,7 +240,7 @@ def train():
             lives = infos.get("lives")
             rewards -= (old_lives > lives).astype(float) # Penalizar la perdida de vidas.
             rewards -= np.all(obs == next_obs, axis = (1, 2, 3)).astype(np.float32) # Penalizar si los pixeles no han cambiado (no usa FIRE)
-            
+            lives = old_lives
 
             rollout.store_batch(
                 state = obs,
