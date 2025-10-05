@@ -211,7 +211,7 @@ def train():
         INPUT_SHAPE = env.single_observation_space.shape
         N_ACTIONS = env.single_action_space.n
         # Lenokua kargatzet 2h hoiek aprobetxatzeko
-        actor_critic = keras.models.load_model("neKabuz/F02_Breakout/BO07_actor_critic.keras") if available_model else bifidModel()
+        actor_critic = keras.models.load_model("neKabuz/F02_Breakout/BO07_50e.keras")
 
 
     rollout = RolloutBufferBatched(ROLLOUT_LENGTH, INPUT_SHAPE, N_ENVS)
