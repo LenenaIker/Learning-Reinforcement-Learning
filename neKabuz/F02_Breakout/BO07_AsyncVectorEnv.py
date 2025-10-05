@@ -18,9 +18,10 @@ import os
 from RolloutBufferBatched import RolloutBufferBatched
 
 
-MODEL_PATH = "BO07_actor_critic.keras"
+MODEL_PATH = "neKabuz/F02_Breakout/BO07_actor_critic.keras"
+available_model = os.path.exists(MODEL_PATH)
 
-Z_PARTIDA = 500
+Z_PARTIDA = 50
 Z_INTERAKZIO_PARTIDAKO = 5000
 
 ROLLOUT_LENGTH = 1024 
@@ -209,7 +210,7 @@ def train():
     if not INPUT_SHAPE or not N_ACTIONS or not actor_critic:
         INPUT_SHAPE = env.single_observation_space.shape
         N_ACTIONS = env.single_action_space.n        
-        actor_critic = bifidModel()
+        actor_critic = keras.models.load_model(MODEL_PATH) if available_model else bifidModel()
 
 
     rollout = RolloutBufferBatched(ROLLOUT_LENGTH, INPUT_SHAPE, N_ENVS)
