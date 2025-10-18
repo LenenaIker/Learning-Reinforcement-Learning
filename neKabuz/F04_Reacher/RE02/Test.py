@@ -4,7 +4,9 @@ import torch
 from Agent import TD3_Agent
 from Config import Config
 
-MODEL_NAME = "best_ep710_ret-3.5.pt"
+models = ["best_ep710_ret-3.5.pt", "best_ep790_ret-2.9.pt"]
+
+MODEL_NAME = models[1]
 
 config = Config()
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

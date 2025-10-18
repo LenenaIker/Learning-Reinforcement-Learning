@@ -3,6 +3,7 @@ import torch
 import numpy as np
 
 import os
+import re
 import random
 from datetime import datetime
 
@@ -40,6 +41,8 @@ def evaluate(agent: TD3_Agent, env: gym.Env, episodes: int = 5, render: bool = F
 
 
 if __name__ == "__main__":
+    MODEL_NAME = None
+
     config = Config()
     start = datetime.now()
     set_seed(config.seed)
@@ -53,10 +56,18 @@ if __name__ == "__main__":
     eval_env = gym.make(config.env_id)
     agent = TD3_Agent(env.observation_space, env.action_space, config, device)
 
-    agent.load()
 
     total_steps = 0
     best_eval = -1e9
+
+    if MODEL_NAME is not None:
+        agent.load(path = config.ckpt_dir + "/" + MODEL_NAME)
+        # config.warmup_steps = int(config.total_episodes * config.max_steps_per_episode * 0.05)
+        best_eval = float(re.search(r"ret(-?\d+(?:\.\d+)?)", MODEL_NAME).group(1))
+
+        print("Model loaded: ", MODEL_NAME)
+
+
     for ep in range(1, config.total_episodes + 1):
         obs, info = env.reset(seed = config.seed + ep)
         agent.reset_noise()
@@ -87,7 +98,7 @@ if __name__ == "__main__":
         agent.decay_noise()
 
         if ep % 1 == 0:
-            print(f"Episodio {ep:03d} | Retorno: {ep_ret:8.2f} | pasos: {ep_len:3d} | sigma: {agent.ou_sigma if config.use_ou_noise else agent.gauss_sigma:.3f}")
+            print(f"Episodio {ep:03d} | Retorno: {ep_ret:8.2f}")
 
         if ep % config.eval_every == 0:
             avg_ret = evaluate(agent, eval_env, config.eval_episodes)
@@ -98,7 +109,6 @@ if __name__ == "__main__":
                 agent.save(path)
                 print(f"Guardado mejor checkpoint en {path}")
     
-    agent.save(os.path.join(config.ckpt_dir, "final.pt"))
     
     env.close()
     eval_env.close()

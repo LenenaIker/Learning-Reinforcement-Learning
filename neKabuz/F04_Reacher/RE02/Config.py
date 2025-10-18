@@ -4,7 +4,7 @@ from dataclasses import dataclass
 class Config:
     env_id: str = "Reacher-v5"
     seed: int = 42
-    total_episodes: int = 2000
+    total_episodes: int = 5000
     max_steps_per_episode: int = 200
 
     gamma: float = 0.99
@@ -18,9 +18,9 @@ class Config:
     warmup_steps: int = 10_000
 
     # Ruido
-    use_ou_noise: bool = False # If false == Gauss
+    use_ou_noise: bool = True # if false == Gauss
     noise_sigma: float = 0.2
-    noise_decay: float = 0.995
+    noise_decay: float = 0.98
     noise_min_sigma: float = 0.05
     policy_noise: float = 0.2
     noise_clip: float = 0.5

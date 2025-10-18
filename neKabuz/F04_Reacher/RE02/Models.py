@@ -3,11 +3,11 @@ import torch
 import torch.nn as nn
 
 
+
 def fanin_init(layer: nn.Linear):
-    bound = 1.0 / math.sqrt(layer.weight.data.size()[0])
+    bound = 1.0 / math.sqrt(layer.weight.data.size()[1]) # in_features
     nn.init.uniform_(layer.weight.data, -bound, bound)
     nn.init.uniform_(layer.bias.data, -bound, bound)
-
 
 class MLP(nn.Module):
     def __init__(self, input_dim: int, output_dim: int, hidden = (256, 256), activation_fn = nn.ReLU, out_act = None):
