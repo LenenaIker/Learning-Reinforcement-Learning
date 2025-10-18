@@ -1,4 +1,3 @@
-from __future__ import annotations
 import os
 from dataclasses import asdict
 
@@ -10,7 +9,7 @@ import torch.optim as optim
 
 from Models import Actor, Critic
 from Config import Config
-from ReplayBuffer import ReplayBuffer
+from Memory import ReplayBuffer
 from Noise import OUNoise
 
 
