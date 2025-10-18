@@ -53,6 +53,7 @@ if __name__ == "__main__":
     eval_env = gym.make(config.env_id)
     agent = TD3_Agent(env.observation_space, env.action_space, config, device)
 
+    agent.load()
 
     total_steps = 0
     best_eval = -1e9
@@ -96,10 +97,6 @@ if __name__ == "__main__":
                 path = os.path.join(config.ckpt_dir, f"best_ep{ep}_ret{avg_ret:.1f}.pt")
                 agent.save(path)
                 print(f"Guardado mejor checkpoint en {path}")
-
-        if ep % config.save_every == 0:
-            path = os.path.join(config.ckpt_dir, f"latest_ep{ep}.pt")
-            agent.save(path)
     
     agent.save(os.path.join(config.ckpt_dir, "final.pt"))
     

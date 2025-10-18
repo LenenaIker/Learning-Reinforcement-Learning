@@ -4,18 +4,18 @@ from dataclasses import dataclass
 class Config:
     env_id: str = "Reacher-v5"
     seed: int = 42
-    total_episodes: int = 300
+    total_episodes: int = 2000
     max_steps_per_episode: int = 200
 
     gamma: float = 0.99
     tau: float = 0.005
 
-    actor_lr: float = 1e-3
-    critic_lr: float = 1e-3
+    actor_lr: float = 3e-4
+    critic_lr: float = 3e-4
 
     buffer_size: int = int(1e6)
     batch_size: int = 256
-    warmup_steps: int = 15_000
+    warmup_steps: int = 10_000
 
     # Ruido
     use_ou_noise: bool = False # If false == Gauss
@@ -30,5 +30,4 @@ class Config:
     policy_freq: int = 2 # número de pasos de críticos por cada paso del actor
 
 
-    save_every: int = 50
     ckpt_dir: str = "neKabuz/F04_Reacher/RE02/checkpoints_ddpg_reacher"
