@@ -17,18 +17,18 @@ from Noise import OUActionNoise, GaussianActionNoise
 
 
 
-class TD3_Agent(nn.Module):
+class TD3_Agent():
     def __init__(self, obs_space: Box, act_space: Box, config: Config, device: torch.device, *args, **kwargs):
-        super(TD3_Agent, self).__init__(*args, **kwargs)
+        # super(TD3_Agent, self).__init__(*args, **kwargs)
         self.config = config
         self.device = device
 
         self.obs_dim = obs_space.shape[0]
         self.act_dim = act_space.shape[0]
-        self.register_buffer("act_low",  torch.as_tensor(act_space.low,  dtype = torch.float32))
-        self.register_buffer("act_high", torch.as_tensor(act_space.high, dtype = torch.float32))
-        self.register_buffer("act_range", self.act_high - self.act_low)
-        # Register_buffer sirve para que viajen de CPU <=> GPU y mantengan dtype
+        self.act_low = torch.as_tensor(act_space.low, dtype = torch.float32, device = device)
+        self.act_high = torch.as_tensor(act_space.high, dtype = torch.float32, device = device)
+        self.act_range = self.act_high - self.act_low
+
 
         self.actor = Actor(self.obs_dim, self.act_dim).to(device)
         self.critic_1 = Critic(self.obs_dim, self.act_dim).to(device)
