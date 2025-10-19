@@ -17,17 +17,18 @@ from Noise import OUActionNoise, GaussianActionNoise
 
 
 
-class TD3_Agent():
+class TD3_Agent(nn.Module):
     def __init__(self, obs_space: Box, act_space: Box, config: Config, device: torch.device, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        super(TD3_Agent, self).__init__(*args, **kwargs)
         self.config = config
         self.device = device
 
         self.obs_dim = obs_space.shape[0]
         self.act_dim = act_space.shape[0]
-        self.act_low = torch.as_tensor(act_space.low, dtype = torch.float32, device = device)
-        self.act_high = torch.as_tensor(act_space.high, dtype = torch.float32, device = device)
-
+        self.register_buffer("act_low",  torch.as_tensor(act_space.low,  dtype = torch.float32).view(1, -1))
+        self.register_buffer("act_high", torch.as_tensor(act_space.high, dtype = torch.float32).view(1, -1))
+        self.register_buffer("act_range", self.act_high - self.act_low)
+        # Register_buffer sirve para que viajen de CPU <=> GPU y mantengan dtype
 
         self.actor = Actor(self.obs_dim, self.act_dim).to(device)
         self.critic_1 = Critic(self.obs_dim, self.act_dim).to(device)
@@ -102,12 +103,17 @@ class TD3_Agent():
         # Target policy: Predicción de la siguiente acción. Escalado a [act_low, act_high]
         raw_next = self.target_actor(next_obs)
         act_next = torch.tanh(raw_next)
-        act_next = (act_next + 1) * 0.5 * (self.act_high - self.act_low) + self.act_low
+        act_next = (act_next + 1) * 0.5 * self.act_range + self.act_low
 
         # Policy smoothing: ruido gaussiano clipeado a [act_low, act_high]
         # act_next_noisy == a'_noisy
-        noise = torch.randn_like(act_next) * self.config.policy_noise
-        noise = torch.clamp(noise, -self.config.noise_clip, self.config.noise_clip)
+        noise = torch.randn_like(act_next) * (self.config.policy_noise * self.act_range)
+        noise = torch.clamp(
+            noise,
+            -self.config.noise_clip * self.act_range,
+            self.config.noise_clip * self.act_range
+        )
+
         act_next_noisy = act_next + noise
         act_next_noisy = torch.clamp(act_next_noisy, self.act_low, self.act_high)
         

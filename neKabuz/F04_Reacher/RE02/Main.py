@@ -83,7 +83,7 @@ if __name__ == "__main__":
             next_obs, reward, terminated, truncated, info = env.step(act)
             done = terminated or truncated
 
-            agent.push(obs, act, reward, next_obs, float(done))
+            agent.push(obs, act, reward, next_obs, float(terminated)) # Usar terminated en vez de done bootstrappea en cortes por límite de tiempo
             obs = next_obs
             ep_ret += float(reward)
             ep_len += 1
