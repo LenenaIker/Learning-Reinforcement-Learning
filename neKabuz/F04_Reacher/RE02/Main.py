@@ -52,8 +52,8 @@ if __name__ == "__main__":
     print("Config:", config, "\n", "Device: ", device)
 
 
-    env = gym.make(config.env_id)
-    eval_env = gym.make(config.env_id)
+    env = gym.make(config.env_id, max_episode_steps = config.max_steps_per_episode + 1)
+    eval_env = gym.make(config.env_id, max_episode_steps = config.max_steps_per_episode + 1)
     agent = TD3_Agent(env.observation_space, env.action_space, config, device)
 
 

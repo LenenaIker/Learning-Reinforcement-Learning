@@ -25,8 +25,8 @@ class TD3_Agent(nn.Module):
 
         self.obs_dim = obs_space.shape[0]
         self.act_dim = act_space.shape[0]
-        self.register_buffer("act_low",  torch.as_tensor(act_space.low,  dtype = torch.float32).view(1, -1))
-        self.register_buffer("act_high", torch.as_tensor(act_space.high, dtype = torch.float32).view(1, -1))
+        self.register_buffer("act_low",  torch.as_tensor(act_space.low,  dtype = torch.float32))
+        self.register_buffer("act_high", torch.as_tensor(act_space.high, dtype = torch.float32))
         self.register_buffer("act_range", self.act_high - self.act_low)
         # Register_buffer sirve para que viajen de CPU <=> GPU y mantengan dtype
 
@@ -79,7 +79,7 @@ class TD3_Agent(nn.Module):
 
             unscaled_action = self.actor(obs_t)
             scaled_action = torch.tanh(unscaled_action) # Escalar a [-1, 1]
-            rescaled_action = (scaled_action + 1) * 0.5 * (self.act_high - self.act_low) + self.act_low # Reescalar a [act_low, act_high]
+            rescaled_action = (scaled_action + 1) * 0.5 * self.act_range + self.act_low # Reescalar a [act_low, act_high]
             act = rescaled_action.squeeze(0).cpu().numpy()
 
         self.actor.train() # Modo Entrenamiento
