@@ -7,7 +7,7 @@ class Config:
 
     # Env
     env_id: str = "Reacher-v5"
-    total_episodes: int = 5000
+    total_episodes: int = 2000
     max_steps_per_episode: int = 500
 
     # Discount factor
@@ -23,7 +23,7 @@ class Config:
     # Memory related
     buffer_size: int = int(1e6)
     batch_size: int = 256
-    warmup_steps: int = 25_000
+    warmup_steps: int = 5_000
 
     # Noise
     use_ou_noise: bool = False # True = Ornstein-Uhlenbeck | False = Gaussian

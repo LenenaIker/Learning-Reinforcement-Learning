@@ -41,7 +41,7 @@ def evaluate(agent: TD3_Agent, env: gym.Env, episodes: int = 5, render: bool = F
 
 
 if __name__ == "__main__":
-    MODEL_NAME = None
+    MODEL_NAME = "best_ep3680_ret-2.5.pt"
 
     config = Config()
     start = datetime.now()
@@ -65,7 +65,7 @@ if __name__ == "__main__":
         # config.warmup_steps = int(config.total_episodes * config.max_steps_per_episode * 0.05)
         best_eval = float(re.search(r"ret(-?\d+(?:\.\d+)?)", MODEL_NAME).group(1))
 
-        print("Model loaded: ", MODEL_NAME)
+        print("Model loaded: ", MODEL_NAME, " | Best Evaluation = ", best_eval)
 
 
     for ep in range(1, config.total_episodes + 1):
