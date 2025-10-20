@@ -9,7 +9,7 @@ In the folder “neKabuz,” which means “on my own”, I save the different a
 
 Inside the ne kabuz folder are the different environments that I have attempted to/managed to resolve.
 
-MountainCar-v0
+**MountainCar-v0**
 
   - f08 was the first to solve MountainCar.
   - f07 came close but didn't have enough episodes.
@@ -17,7 +17,7 @@ MountainCar-v0
 
 
 
-ALE/Breakout-v5
+**ALE/Breakout-v5**
 
   - Attempt BO02 is almost the same as f08_MountainCar.
   - In BO03, I understand that PPO uses an actor and a model.
@@ -26,3 +26,15 @@ ALE/Breakout-v5
   - In BO06_Preproc_FrameStack, I implement AtariPreprocessing and FrameStack. The time for the first game is still around three minutes and a bit.
   - In BO07_AsyncVectorEnv, I manage to launch several environments at once, eight in my case. This reduces the time of the first game from a little over 3 minutes to 1 minute and 58 seconds. Keep in mind that the learning phase is just as heavy; what I reduce is the time of the steps. I consider it solved. With 50 episodes, it is already capable of hitting the ball. It is not capable of solving it completely, but I don't want to burn out my laptop training a model for Atari.
   - BO08 is the same as BO07, but it uses the already trained BO07 model (which has 50 episodes) and adds a reward system to subtract points for each step taken without removing a ball or for each life lost (25 episodes). It is interesting to see how the model not only fails to improve, but actually gets worse. I believe this is due to the reward shaping of subtracting reward if the ball is not removed, as I compare the current observations with the previous ones, causing the AI to choose to move constantly in any direction to avoid being punished instead of removing the ball. You can view the files ./videos/ BO07_50e.mp4 and BO08_75e.mp4 to check it out for yourself. You can also view my professional configuration BO07_Training.jpg.
+
+
+**Pendulum-v1**
+
+  - It has been carried out mainly with GPT, with the objetive of understanding the idea of DDPG.
+
+
+**Reacher-v5**
+
+  - It implements TD3, which is an improvement on DDPG. Once I understood DDPG thanks to Pendulum, I adapted the code to solve Reacher.
+
+
