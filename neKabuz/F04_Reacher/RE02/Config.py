@@ -41,4 +41,4 @@ class Config:
     policy_freq: int = 2 # número de pasos de críticos por cada paso del actor
 
     # Checkpoints / best models 
-    ckpt_dir: str = "neKabuz/F04_Reacher/RE02/checkpoints_ddpg_reacher"
+    ckpt_dir: str = "neKabuz/F04_Reacher/RE02/checkpoints_td3_reacher"
