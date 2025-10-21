@@ -13,8 +13,6 @@ from dataclasses import asdict
 from Config import Config
 from Models import Actor, Critic
 from Memory import ReplayBuffer
-from Noise import OUActionNoise, GaussianActionNoise
-
 
 
 class SAC():
@@ -50,22 +48,6 @@ class SAC():
 
         self.memory = ReplayBuffer(self.obs_dim, self.act_dim, size = config.buffer_size)
 
-
-        if config.use_ou_noise:
-            self.ou_sigma = config.noise_sigma
-            self.noise = OUActionNoise(
-                mean = np.zeros(self.act_dim, dtype = np.float32),
-                std_deviation = np.ones(self.act_dim, dtype = np.float32) * self.ou_sigma,
-                theta = 0.15,
-                dt = 1e-2
-            )
-        else:
-            self.gauss_sigma = config.noise_sigma
-            self.noise = GaussianActionNoise(
-                mean = np.zeros(self.act_dim, dtype = np.float32),
-                std = np.ones(self.act_dim, dtype = np.float32) * self.gauss_sigma
-            )
-
         self.update_step = 0
 
 
@@ -94,10 +76,11 @@ class SAC():
 
     @torch.no_grad()
     def _target(self, next_obs, rewards, dones):
+        # TODO: _target
         """
-        TD3 target:
-        y = r + gamma * (1 - done) * min(Q1'(s', a'_noisy), Q2'(s', a'_noisy))
-        con policy smoothing (ruido gaussiano truncado) y recorte a los límites de acción.
+        SAC Target:
+        y = rewards + gamma * (1 - dones) * (q_next - alpha * log_pi_next)
+
         """
 
         # Target policy: Predicción de la siguiente acción. Escalado a [act_low, act_high]
@@ -105,6 +88,7 @@ class SAC():
         act_next = torch.tanh(raw_next)
         act_next = (act_next + 1) * 0.5 * self.act_range + self.act_low
 
+        
         # Policy smoothing: ruido gaussiano clipeado a [act_low, act_high]
         # act_next_noisy == a'_noisy
         noise = torch.randn_like(act_next) * (self.config.policy_noise * self.act_range)
@@ -209,19 +193,6 @@ class SAC():
 
     def push(self, *args, **kwargs):
         self.memory.add(*args, **kwargs)
-
-    def reset_noise(self):
-        if self.noise is not None:
-            self.noise.reset()
-
-    def decay_noise(self):
-        if isinstance(self.noise, OUActionNoise):
-            self.ou_sigma = max(self.config.noise_min_sigma, self.ou_sigma * self.config.noise_decay)
-            self.noise.std_deviation = np.ones_like(self.noise.std_deviation) * self.ou_sigma
-        elif isinstance(self.noise, GaussianActionNoise):
-            self.gauss_sigma = max(self.config.noise_min_sigma, self.gauss_sigma * self.config.noise_decay)
-            self.noise.std = np.ones_like(self.noise.std) * self.gauss_sigma
-
 
 
     def save(self, path: str):
