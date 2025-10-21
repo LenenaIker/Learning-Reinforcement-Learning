@@ -25,6 +25,12 @@ class Config:
     batch_size: int = 256
     warmup_steps: int = 5_000
 
+    # SAC – entropy
+    auto_tune_alpha: bool = True
+    alpha: float = 0.2 # only if auto_tune_alpha = False
+    alpha_lr: float = 3e-4
+    target_entropy: float = -6.0 # -action_dim para Walker2D
+
 
     # Evaluation & update frequencies
     # updates_per_step: int = 1
