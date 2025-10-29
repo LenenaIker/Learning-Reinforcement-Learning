@@ -1,6 +1,6 @@
 import gymnasium as gym
 import numpy as np
-
+ 
 # https://gymnasium.farama.org/environments/mujoco/reacher/
 
 env = gym.make("Walker2d-v5", render_mode = "human")
