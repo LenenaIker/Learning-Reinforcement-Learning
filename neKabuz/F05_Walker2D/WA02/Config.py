@@ -29,12 +29,12 @@ class Config:
     auto_tune_alpha: bool = True
     alpha: float = 0.2 # only if auto_tune_alpha = False
     alpha_lr: float = 3e-4
-    target_entropy: float = -6.0 # -action_dim para Walker2D
+    target_entropy: float | None = None# -6.0 # -action_dim para Walker2D
 
 
     # Evaluation & update frequencies
     # updates_per_step: int = 1
-    policy_freq: int = 2 # número de pasos de críticos por cada paso del actor
+    # policy_freq: int = 2 # número de pasos de críticos por cada paso del actor, en SAC no se usa esto.
     eval_every: int = 10 # eval sin ruido cada N episodios
     eval_episodes: int = 5
 
