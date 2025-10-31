@@ -45,8 +45,7 @@ class SAC():
         # SAC usa alpha cómo temperatura para controlar el equilibrio entre maximizar el reforzamiento esperado y maximizar la entropía del comportamiento.
         self.log_alpha = torch.tensor(np.log(getattr(config, "alpha_init", 0.2)), device = self.device, requires_grad = True)
         self.alpha_opt = optim.Adam([self.log_alpha], lr = getattr(config, "alpha_lr", 3e-4))
-        self.target_entropy = getattr(config, "target_entropy", -float(self.act_dim))
-
+        self.target_entropy = (-float(self.act_dim) if getattr(config, "target_entropy", None) is None else config.target_entropy)
 
         self.memory = ReplayBuffer(self.obs_dim, self.act_dim, size = config.buffer_size)
 
