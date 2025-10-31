@@ -18,9 +18,9 @@ env = gym.make(
     render_mode = "human",
     max_episode_steps = config.max_steps_per_episode
 )
-
-agent = SAC(env.observation_space, env.action_space, config, torch.device("cuda" if torch.cuda.is_available() else "cpu"))
-agent.load(path = config.ckpt_dir + "/" + model_names[index])
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+agent = SAC(env.observation_space, env.action_space, config, device)
+agent.load(path = config.ckpt_dir + "/" + model_names[index], map_location = device)
 
 
 for ep in range(10):
@@ -31,3 +31,5 @@ for ep in range(10):
         next_obs, reward, terminated, truncated, info = env.step(act)
 
         obs = next_obs
+
+env.close()
