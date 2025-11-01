@@ -24,4 +24,4 @@ Bi dimentsioko ingurune baten daon agente batentzat.
     - Aukera egokiak kotxeentzat adbz.
 
 
-
+Walker2D-k aurreaka ta atzeaka in dezakenez bakarrik, eztet hemengo ezer behar, zuzenean V erabiltzet ta horrekin aurrea ta atzea juten erakutsikoiot.
