@@ -21,9 +21,7 @@ class SAC():
         self.config = config
         self.device = device
 
-        # Obserbazioei abiadura gehitukoiet (input bat izangoalako), horregatik +1
-        # TODO: Eztu ematen hemen danik +1 jartzeko leku honena, iwal Main-en in beharko zan
-        self.obs_dim = obs_space.shape[0] + 1
+        self.obs_dim = obs_space.shape[0]
         self.act_dim = act_space.shape[0]
         self.act_low = torch.as_tensor(act_space.low, dtype = torch.float32, device = device)
         self.act_high = torch.as_tensor(act_space.high, dtype = torch.float32, device = device)

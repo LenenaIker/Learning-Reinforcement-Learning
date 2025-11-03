@@ -10,6 +10,7 @@ import os
 
 from Agent import SAC
 from Config import Config
+from InputController import run_signal_builder
 
 def set_seed(seed: int):
     random.seed(seed)
@@ -22,6 +23,10 @@ def evaluate(agent: SAC, env: gym.Env, episodes: int = 5, render: bool = False) 
     returns = []
     for _ in range(episodes):
         obs, info = env.reset()
+
+        # Añadir velocidad deseada
+        obs = np.concatenate([obs, [get_speed(0)]], dtype=np.float32)
+
         done = False
         ep_ret = 0.0
         steps = 0
@@ -29,6 +34,10 @@ def evaluate(agent: SAC, env: gym.Env, episodes: int = 5, render: bool = False) 
             act = agent.act(obs, explore = False)
             next_obs, reward, terminated, truncated, info = env.step(act)
             done = terminated or truncated
+
+            # Añadir velocidad deseada para el paso siguiente
+            next_obs = np.concatenate([next_obs, [get_speed(((t + 1) / config.max_steps_per_episode) * 10)]], dtype = np.float32)
+
             ep_ret += float(reward)
             obs = next_obs
             steps += 1
@@ -46,15 +55,21 @@ if __name__ == "__main__":
     set_seed(config.seed)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    print("Config:", config, "\n", "Device: ", device)
+    print("Config:", config, "\n", "Device:", device, sep = "\n")
 
     env = gym.make(config.env_id, max_episode_steps = config.max_steps_per_episode + 1)
     eval_env = gym.make(config.env_id, max_episode_steps = config.max_steps_per_episode + 1)
 
-    agent = SAC(env.observation_space, env.action_space, config, device)
+    # Obserbazioei abiadura gehitukoiet (input bat izangoalako), horregatik +1
+    agent = SAC(env.observation_space.shape[0] + 1, env.action_space.shape[0], config, device)
+
+
+    get_speed = run_signal_builder()
+
 
     total_steps = 0
     best_eval = -1e9
+    speed = 0
 
     if MODEL_NAME is not None:
         agent.load(path = config.ckpt_dir + "/" + MODEL_NAME)
@@ -66,7 +81,10 @@ if __name__ == "__main__":
 
     for ep in range(1, config.total_episodes + 1):
         obs, info = env.reset(seed = config.seed + ep)
-        
+
+        # Añadir velocidad deseada
+        obs = np.concatenate([obs, [get_speed(0)]], dtype=np.float32)
+
         ep_ret = 0.0
         ep_len = 0
         for t in range(config.max_steps_per_episode):
@@ -74,11 +92,15 @@ if __name__ == "__main__":
                 act = env.action_space.sample().astype(np.float32)
             else:
                 act = agent.act(obs, explore = True)
+            
 
             next_obs, reward, terminated, truncated, info = env.step(act)
             done = terminated or truncated
 
-            agent.push(obs, act, reward, next_obs, float(terminated)) # Usar terminated en vez de done bootstrappea en cortes por límite de tiempo
+            # Añadir velocidad deseada para el paso siguiente
+            next_obs = np.concatenate([next_obs, [get_speed(((t + 1) / config.max_steps_per_episode) * 10)]], dtype = np.float32)
+
+            agent.push(obs, act, reward, next_obs, float(terminated))
             obs = next_obs
             ep_ret += float(reward)
             ep_len += 1
