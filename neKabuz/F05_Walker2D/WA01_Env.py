@@ -8,7 +8,7 @@ print(type(env.observation_space.shape[0]))
 
 for i in range(5):
     obs, info = env.reset()
-
+    print(info)
     for j in range(200):
         act = np.random.uniform(-1, 1, size = 6)
         xp = env.step(act)

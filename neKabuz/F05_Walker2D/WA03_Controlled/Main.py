@@ -11,6 +11,8 @@ import os
 from Agent import SAC
 from Config import Config
 from InputController import get_random_speed_function
+from EnvWrapper import WalkerWithCommand
+
 
 def set_seed(seed: int):
     random.seed(seed)
@@ -18,15 +20,11 @@ def set_seed(seed: int):
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
 
-def evaluate(agent: SAC, env: gym.Env, episodes: int = 5, render: bool = False) -> float:
+def evaluate(agent: SAC, env, episodes: int = 5, render: bool = False) -> float:
     """Evalúa el agente sin ruido y devuelve la media de retornos."""
     returns = []
     for _ in range(episodes):
         obs, info = env.reset()
-
-        # Añadir velocidad deseada
-        obs = np.concatenate([obs, [get_speed(0)]], dtype=np.float32)
-
         done = False
         ep_ret = 0.0
         steps = 0
@@ -34,9 +32,6 @@ def evaluate(agent: SAC, env: gym.Env, episodes: int = 5, render: bool = False) 
             act = agent.act(obs, explore = False)
             next_obs, reward, terminated, truncated, info = env.step(act)
             done = terminated or truncated
-
-            # Añadir velocidad deseada para el paso siguiente
-            next_obs = np.concatenate([next_obs, [get_speed(((t + 1) / config.max_steps_per_episode) * 10)]], dtype = np.float32)
 
             ep_ret += float(reward)
             obs = next_obs
@@ -49,6 +44,7 @@ def evaluate(agent: SAC, env: gym.Env, episodes: int = 5, render: bool = False) 
 
 if __name__ == "__main__":
     MODEL_NAME = None
+    N_SPEEDS = 10
 
     config = Config()
     start = datetime.now()
@@ -60,10 +56,20 @@ if __name__ == "__main__":
     env = gym.make(config.env_id, max_episode_steps = config.max_steps_per_episode + 1)
     eval_env = gym.make(config.env_id, max_episode_steps = config.max_steps_per_episode + 1)
 
-    # Obserbazioei abiadura gehitukoiet (input bat izangoalako), horregatik +1
-    agent = SAC(env.observation_space.shape[0] + 1, env.action_space.shape[0], config, device)
+    env = WalkerWithCommand(
+        env = env,
+        speed_function = get_random_speed_function(N_SPEEDS),
+        n_speeds = N_SPEEDS,
+        penalty = 1.0
+    )
+    eval_env = WalkerWithCommand(
+        env = eval_env,
+        speed_function = get_random_speed_function(N_SPEEDS),
+        n_speeds = N_SPEEDS,
+        penalty = 1.0
+    )
 
-    N_SPEEDS = 10
+    agent = SAC(env.observation_space, env.action_space, config, device)
 
     total_steps = 0
     best_eval = -1e9
@@ -78,13 +84,11 @@ if __name__ == "__main__":
 
 
     for ep in range(1, config.total_episodes + 1):
-        obs, info = env.reset(seed = config.seed + ep)
-
-        # Para qué la red no se memorize las velocidades, se define una función de velocidades distinta en cada episodio.
-        get_speed = get_random_speed_function(N_SPEEDS)
-
-        # Añadir velocidad deseada
-        obs = np.concatenate([obs, [get_speed(0)]], dtype=np.float32)
+        obs, info = env.reset(
+            speed_function = get_random_speed_function(N_SPEEDS),
+            n_speeds = N_SPEEDS,
+            seed = config.seed + ep
+        )
 
         ep_ret = 0.0
         ep_len = 0
@@ -97,9 +101,6 @@ if __name__ == "__main__":
 
             next_obs, reward, terminated, truncated, info = env.step(act)
             done = terminated or truncated
-
-            # Añadir velocidad deseada para el paso siguiente
-            next_obs = np.concatenate([next_obs, [get_speed(((t + 1) / config.max_steps_per_episode) * N_SPEEDS)]], dtype = np.float32)
 
             agent.push(obs, act, reward, next_obs, float(terminated))
             obs = next_obs
