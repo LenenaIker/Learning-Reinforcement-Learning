@@ -10,7 +10,7 @@ import os
 
 from Agent import SAC
 from Config import Config
-from InputController import run_signal_builder
+from InputController import get_random_speed_function
 
 def set_seed(seed: int):
     random.seed(seed)
@@ -63,9 +63,7 @@ if __name__ == "__main__":
     # Obserbazioei abiadura gehitukoiet (input bat izangoalako), horregatik +1
     agent = SAC(env.observation_space.shape[0] + 1, env.action_space.shape[0], config, device)
 
-
-    get_speed = run_signal_builder()
-
+    N_SPEEDS = 10
 
     total_steps = 0
     best_eval = -1e9
@@ -81,6 +79,9 @@ if __name__ == "__main__":
 
     for ep in range(1, config.total_episodes + 1):
         obs, info = env.reset(seed = config.seed + ep)
+
+        # Para qué la red no se memorize las velocidades, se define una función de velocidades distinta en cada episodio.
+        get_speed = get_random_speed_function(N_SPEEDS)
 
         # Añadir velocidad deseada
         obs = np.concatenate([obs, [get_speed(0)]], dtype=np.float32)
@@ -98,7 +99,7 @@ if __name__ == "__main__":
             done = terminated or truncated
 
             # Añadir velocidad deseada para el paso siguiente
-            next_obs = np.concatenate([next_obs, [get_speed(((t + 1) / config.max_steps_per_episode) * 10)]], dtype = np.float32)
+            next_obs = np.concatenate([next_obs, [get_speed(((t + 1) / config.max_steps_per_episode) * N_SPEEDS)]], dtype = np.float32)
 
             agent.push(obs, act, reward, next_obs, float(terminated))
             obs = next_obs

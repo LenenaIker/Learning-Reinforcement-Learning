@@ -152,6 +152,12 @@ def run_signal_builder():
     app.exec_()
     return w.data
 
+def get_random_speed_function(n: int = 10):
+    return df_to_function(pd.DataFrame({
+        "t": range(n),
+        "y": np.random.uniform(-1, 1, n)
+    }))
+
 def df_to_function(df, clamp = True):
     """
     Convierte un DataFrame con columnas 't' y 'y' en una función interpolada f(t).
@@ -169,7 +175,6 @@ def df_to_function(df, clamp = True):
     uniq_t, uniq_idx = np.unique(t, return_index = True)
     if len(uniq_t) != len(t):
         # Mantén el último valor para cada t repetido
-        # (otra opción: media; ajusta si prefieres)
         last_vals = {}
         for ti, yi in zip(t, y):
             last_vals[ti] = yi
@@ -193,5 +198,3 @@ def df_to_function(df, clamp = True):
         return float(vals) if np.isscalar(tq) else vals
 
     return f
-
-
