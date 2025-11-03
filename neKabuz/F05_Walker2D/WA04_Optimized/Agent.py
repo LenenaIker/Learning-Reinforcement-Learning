@@ -15,6 +15,11 @@ from Models import StochasticActor, Critic
 from Memory import ReplayBuffer
 
 
+@torch.no_grad()
+def __soft_update(target, source, tau):
+    for tp, p in zip(target.parameters(), source.parameters()):
+        tp.data.mul_(1 - tau).add_(p.data, alpha=tau)
+
 class SAC():
     def __init__(self, obs_space: Box, act_space: Box, config: Config, device: torch.device, *args, **kwargs):
         # super(TD3_Agent, self).__init__(*args, **kwargs)
@@ -31,6 +36,11 @@ class SAC():
         self.critic_1 = Critic(self.obs_dim, self.act_dim).to(device)
         self.critic_2 = Critic(self.obs_dim, self.act_dim).to(device)
         
+        if config.use_compile:
+            self.actor = torch.compile(self.actor)
+            self.critic_1 = torch.compile(self.critic_1)
+            self.critic_2 = torch.compile(self.critic_2)
+            
         self.target_critic_1 = Critic(self.obs_dim, self.act_dim).to(device)
         self.target_critic_2 = Critic(self.obs_dim, self.act_dim).to(device)
 
@@ -52,18 +62,11 @@ class SAC():
 
 
     def act(self, obs: np.ndarray, explore: bool = True) -> np.ndarray:
-        self.actor.eval()
-        
         with torch.no_grad():
-            obs_t = torch.as_tensor(obs, dtype = torch.float32, device = self.device).unsqueeze(0)
-            # Si explore = True: muestrea (estocástico), si no, modo determinista
-            action_unit, _ = self.actor(obs_t, deterministic = not explore, with_logprob = False)  # [-1,1]
-            # Reescala a [low, high]
+            obs_t = torch.from_numpy(obs).to(self.device, non_blocking = True).unsqueeze(0)
+            action_unit, _ = self.actor(obs_t, deterministic = not explore, with_logprob = False)
             rescaled = (action_unit + 1) * 0.5 * self.act_range + self.act_low
-            act = rescaled.squeeze(0).cpu().numpy().astype(np.float32)
-
-        self.actor.train()
-        return act
+        return rescaled.squeeze(0).cpu().numpy()
 
 
     @torch.no_grad()
@@ -80,18 +83,17 @@ class SAC():
         alpha = self.log_alpha.exp()
         y = rewards + self.config.gamma * (1 - dones) * (q_next - alpha * log_pi_next)
         return y
-    
 
     def train_step(self):
         if self.memory.len < self.config.batch_size:
             return {}
 
-        batch = self.memory.sample(self.config.batch_size)
-        obs = batch["obs"].to(self.device)
-        acts = batch["acts"].to(self.device)
-        rews = batch["rews"].to(self.device)
-        next_obs = batch["next_obs"].to(self.device)
-        dones = batch["dones"].to(self.device)
+        batch = self.memory.sample(self.config.batch_size, device = self.device)
+        obs = batch["obs"]
+        acts = batch["acts"]
+        rews = batch["rews"]
+        next_obs = batch["next_obs"]
+        dones = batch["dones"]
 
         with torch.no_grad():
             target_q = self._target(next_obs, rews, dones)
@@ -101,15 +103,14 @@ class SAC():
 
         critic_loss_1 = nn.functional.mse_loss(q1, target_q)
         critic_loss_2 = nn.functional.mse_loss(q2, target_q)
+        critic_loss = critic_loss_1 + critic_loss_2
 
         self.critic_1_opt.zero_grad()
-        critic_loss_1.backward()
-        nn.utils.clip_grad_norm_(self.critic_1.parameters(), max_norm = 1.0)
-        self.critic_1_opt.step()
-
         self.critic_2_opt.zero_grad()
-        critic_loss_2.backward()
+        critic_loss.backward()
+        nn.utils.clip_grad_norm_(self.critic_1.parameters(), max_norm = 1.0)
         nn.utils.clip_grad_norm_(self.critic_2.parameters(), max_norm = 1.0)
+        self.critic_1_opt.step()
         self.critic_2_opt.step()
 
         metrics = {
@@ -144,13 +145,10 @@ class SAC():
         metrics["alpha_loss"] = float(alpha_loss.item())
 
 
-        with torch.no_grad():
-            for tp, p in zip(self.target_critic_1.parameters(), self.critic_1.parameters()):
-                tp.data.mul_(1 - self.config.tau)
-                tp.data.add_(self.config.tau * p.data)
-            for tp, p in zip(self.target_critic_2.parameters(), self.critic_2.parameters()):
-                tp.data.mul_(1 - self.config.tau)
-                tp.data.add_(self.config.tau * p.data)
+        if self.update_step % self.config.target_update_every == 0:
+            __soft_update(self.target_critic_1, self.critic_1, self.config.tau)
+            __soft_update(self.target_critic_2, self.critic_2, self.config.tau)
+
 
         self.update_step += 1
         return metrics

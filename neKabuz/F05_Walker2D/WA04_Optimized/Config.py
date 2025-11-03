@@ -4,6 +4,7 @@ from dataclasses import dataclass
 class Config:
     
     seed: int = 42
+    use_compile = True
 
     # Env
     env_id: str = "Walker2d-v5"
@@ -33,10 +34,11 @@ class Config:
 
 
     # Evaluation & update frequencies
-    # updates_per_step: int = 1
+    updates_per_step: int = 2
     # policy_freq: int = 2 # número de pasos de críticos por cada paso del actor, en SAC no se usa esto.
-    eval_every: int = 10 # eval sin ruido cada N episodios
+    eval_every: int = 20
     eval_episodes: int = 5
+    target_update_every = 1
 
     # Checkpoints / best models 
     ckpt_dir: str = "neKabuz/F05_Walker2D/WA04_Optimized/models_sac_walker2d"

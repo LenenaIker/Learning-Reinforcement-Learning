@@ -3,6 +3,7 @@ import gymnasium as gym
 import random
 import numpy as np
 import torch
+torch.set_float32_matmul_precision("medium")
 
 from datetime import datetime
 import re
@@ -20,26 +21,36 @@ def set_seed(seed: int):
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
 
-def evaluate(agent: SAC, env, episodes: int = 5, render: bool = False) -> float:
-    """Evalúa el agente sin ruido y devuelve la media de retornos."""
-    returns = []
-    for _ in range(episodes):
-        obs, info = env.reset()
-        done = False
-        ep_ret = 0.0
-        steps = 0
-        while not done:
-            act = agent.act(obs, explore = False)
-            next_obs, reward, terminated, truncated, info = env.step(act)
-            done = terminated or truncated
+def evaluate(agent, eval_env, episodes=5):
+    total_reward = 0
+    steps = 0
+    obs, _ = eval_env.reset()
+    done = np.zeros(eval_env.num_envs, dtype=bool)
 
-            ep_ret += float(reward)
-            obs = next_obs
-            steps += 1
-            if render:
-                env.render()
-        returns.append(ep_ret)
-    return float(np.mean(returns))
+    while not np.all(done):
+        act = agent.act(obs, explore=False)
+        obs, reward, terminated, truncated, _ = eval_env.step(act)
+        done |= (terminated | truncated)
+        total_reward += reward.sum()
+        steps += 1
+
+    avg_reward = total_reward / episodes
+    return avg_reward
+
+
+def make_env(seed, n_speeds):
+    def thunk():
+        e = gym.make(config.env_id, max_episode_steps = config.max_steps_per_episode + 1)
+        e = WalkerWithCommand(
+            env = e,
+            speed_function = get_random_speed_function(n_speeds),
+            n_speeds = n_speeds,
+            penalty = 1.0
+        )
+        e.reset(seed = seed)
+        return e
+    return thunk
+
 
 
 if __name__ == "__main__":
@@ -53,21 +64,17 @@ if __name__ == "__main__":
 
     print("Config:", config, "\n", "Device:", device, sep = "\n")
 
-    env = gym.make(config.env_id, max_episode_steps = config.max_steps_per_episode + 1)
-    eval_env = gym.make(config.env_id, max_episode_steps = config.max_steps_per_episode + 1)
+    num_train_envs = 8
+    num_eval_envs = 4
 
-    env = WalkerWithCommand(
-        env = env,
-        speed_function = get_random_speed_function(N_SPEEDS),
-        n_speeds = N_SPEEDS,
-        penalty = 1.0
+    env = gym.vector.AsyncVectorEnv(
+        [make_env(config.seed + i, N_SPEEDS, eval_mode=False) for i in range(num_train_envs)]
     )
-    eval_env = WalkerWithCommand(
-        env = eval_env,
-        speed_function = get_random_speed_function(N_SPEEDS),
-        n_speeds = N_SPEEDS,
-        penalty = 1.0
+
+    eval_env = gym.vector.SyncVectorEnv(  # Sync para eval → resultados más reproducibles
+        [make_env(config.seed + 10 + i, N_SPEEDS, eval_mode=True) for i in range(num_eval_envs)]
     )
+
 
     agent = SAC(env.observation_space, env.action_space, config, device)
 
@@ -109,7 +116,8 @@ if __name__ == "__main__":
             total_steps += 1
 
             if total_steps >= config.warmup_steps:
-                agent.train_step()
+                for _ in range(config.updates_per_step):
+                    agent.train_step()
 
             if done:
                 break
