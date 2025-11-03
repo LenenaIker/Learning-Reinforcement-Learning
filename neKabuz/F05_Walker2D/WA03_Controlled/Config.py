@@ -39,4 +39,4 @@ class Config:
     eval_episodes: int = 5
 
     # Checkpoints / best models 
-    ckpt_dir: str = "neKabuz/F05_Walker2D/WA02/models_sac_walker2d"
+    ckpt_dir: str = "neKabuz/F05_Walker2D/WA03_Controlled/models_sac_walker2d"
