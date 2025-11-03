@@ -2,6 +2,7 @@ import gymnasium as gym
 import mujoco as mj
 
 import torch
+import numpy as np
 
 from os import listdir
 
@@ -68,7 +69,7 @@ try:
         obs, info = env.reset()
 
         for t in range(config.max_steps_per_episode):
-            act = agent.act(obs = torch.cat(obs + [get_speed(t / config.max_steps_per_episode / 10)],), explore = True)
+            act = agent.act(obs = np.concatenate([obs, [(t / config.max_steps_per_episode) * 10]]).astype(np.float32), explore = True)
             next_obs, reward, terminated, truncated, info = env.step(act)
 
             obs = next_obs
