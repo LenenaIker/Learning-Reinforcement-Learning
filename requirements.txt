@@ -6,3 +6,4 @@ mujoco==3.3.6
 numpy==2.3.4
 tensorflow==2.20.0
 torch==2.8.0
+gymnasium[mujoco]

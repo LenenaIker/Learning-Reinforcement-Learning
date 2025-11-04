@@ -35,17 +35,17 @@ class SAC():
         self.actor = StochasticActor(self.obs_dim, self.act_dim).to(device)
         self.critic_1 = Critic(self.obs_dim, self.act_dim).to(device)
         self.critic_2 = Critic(self.obs_dim, self.act_dim).to(device)
-        
-        if config.use_compile:
-            self.actor = torch.compile(self.actor, mode = "reduce-overhead")
-            self.critic_1 = torch.compile(self.critic_1, mode = "reduce-overhead")
-            self.critic_2 = torch.compile(self.critic_2, mode = "reduce-overhead")
-            
+
         self.target_critic_1 = Critic(self.obs_dim, self.act_dim).to(device)
         self.target_critic_2 = Critic(self.obs_dim, self.act_dim).to(device)
 
         self.target_critic_1.load_state_dict(self.critic_1.state_dict())
         self.target_critic_2.load_state_dict(self.critic_2.state_dict())
+
+        if config.use_compile:
+            self.actor = torch.compile(self.actor, mode = "reduce-overhead")
+            self.critic_1 = torch.compile(self.critic_1, mode = "reduce-overhead")
+            self.critic_2 = torch.compile(self.critic_2, mode = "reduce-overhead")
 
         self.actor_opt = optim.Adam(self.actor.parameters(), lr = config.actor_lr)
         self.critic_1_opt = optim.Adam(self.critic_1.parameters(), lr = config.critic_lr)
