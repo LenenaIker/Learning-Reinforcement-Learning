@@ -195,3 +195,8 @@ def get_random_speed_function(n: int = 10):
     t = np.linspace(X_MIN, X_MAX, n, dtype = float)
     y = np.random.uniform(-1.0, 1.0, size = n).astype(float)
     return __ndarrays_to_function(t, y)
+
+def random_speed_arrays(n_speeds: int):
+    t = np.linspace(0.0, 10.0, n_speeds, dtype=np.float32)
+    y = np.random.uniform(-1.0, 1.0, size=n_speeds).astype(np.float32)
+    return t, y

@@ -16,7 +16,7 @@ from Memory import ReplayBuffer
 
 
 @torch.no_grad()
-def __soft_update(target, source, tau):
+def soft_update(target, source, tau):
     for tp, p in zip(target.parameters(), source.parameters()):
         tp.data.mul_(1 - tau).add_(p.data, alpha = tau)
 
@@ -42,10 +42,6 @@ class SAC():
         self.target_critic_1.load_state_dict(self.critic_1.state_dict())
         self.target_critic_2.load_state_dict(self.critic_2.state_dict())
 
-        if config.use_compile:
-            self.actor = torch.compile(self.actor, mode = "reduce-overhead")
-            self.critic_1 = torch.compile(self.critic_1, mode = "reduce-overhead")
-            self.critic_2 = torch.compile(self.critic_2, mode = "reduce-overhead")
 
         self.actor_opt = optim.Adam(self.actor.parameters(), lr = config.actor_lr)
         self.critic_1_opt = optim.Adam(self.critic_1.parameters(), lr = config.critic_lr)
@@ -159,8 +155,8 @@ class SAC():
 
 
         if self.update_step % self.config.target_update_every == 0:
-            __soft_update(self.target_critic_1, self.critic_1, self.config.tau)
-            __soft_update(self.target_critic_2, self.critic_2, self.config.tau)
+            soft_update(self.target_critic_1, self.critic_1, self.config.tau)
+            soft_update(self.target_critic_2, self.critic_2, self.config.tau)
 
 
         self.update_step += 1

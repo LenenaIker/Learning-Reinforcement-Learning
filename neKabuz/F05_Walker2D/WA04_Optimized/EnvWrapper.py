@@ -1,6 +1,25 @@
 import gymnasium as gym
 import numpy as np
 
+def _make_interp_function(t: np.ndarray, y: np.ndarray, clamp: bool = True):
+    t = np.asarray(t, dtype = float)
+    y = np.asarray(y, dtype = float)
+
+    idx = np.argsort(t)
+    t = t[idx]
+    y = y[idx]
+
+    left = y[0] if clamp else np.nan
+    right = y[-1] if clamp else np.nan
+
+    def f(tq):
+        tq_arr = np.asarray(tq, dtype = float)
+        vals = np.interp(tq_arr, t, y, left = left, right = right)
+        return float(vals) if np.isscalar(tq) else vals
+
+    return f
+
+
 class WalkerWithCommand(gym.Wrapper):
     def __init__(self, env: gym.Env, speed_function, n_speeds: int,
                  penalty: float = 1.0, speed_name: str = "x_velocity"):
@@ -21,10 +40,15 @@ class WalkerWithCommand(gym.Wrapper):
 
     def reset(self, *, seed = None, options = None, **kwargs):
         if options is not None:
-            sf = options.get("speed_function", None)
+            # antes: options["speed_function"] traía una función (no picklable)
+            # ahora: puede traer arrays
+            t_arr = options.get("speed_t", None)
+            y_arr = options.get("speed_y", None)
             ns = options.get("n_speeds", None)
-            if sf is not None:
-                self.speed_function = sf
+
+            if t_arr is not None and y_arr is not None:
+                self.speed_function = _make_interp_function(t_arr, y_arr)
+
             if ns is not None:
                 self.n_speeds = ns
 

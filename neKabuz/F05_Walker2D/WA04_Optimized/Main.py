@@ -8,7 +8,7 @@ import re
 
 from Agent import SAC
 from Config import Config
-from InputController import get_random_speed_function
+from InputController import random_speed_arrays, get_random_speed_function
 from EnvWrapper import WalkerWithCommand
 
 def set_seed(seed: int):
@@ -37,7 +37,16 @@ def evaluate(agent, eval_env, episodes = 5, n_speeds = 10):
     n_envs = eval_env.num_envs
     returns = []
     for _ in range(episodes):
-        obs, _ = eval_env.reset(options={"speed_function": get_random_speed_function(n_speeds),"n_speeds": n_speeds})
+        times = np.linspace(0.0, 10.0, n_speeds, dtype=np.float32)
+        speeds = np.random.uniform(-1.0, 1.0, size=n_speeds).astype(np.float32)
+        obs, _ = eval_env.reset(
+            options = {
+                "speed_t": times,
+                "speed_y": speeds,
+                "n_speeds": n_speeds
+            }
+        )
+        
         done = np.zeros(n_envs, dtype = bool)
         ep_ret = np.zeros(n_envs, dtype = np.float32)
 
@@ -80,10 +89,13 @@ if __name__ == "__main__":
         print("Model loaded:", MODEL_NAME, "| Best Evaluation =", best_eval)
 
     for ep in range(1, config.total_episodes + 1):
+        times, speeds = random_speed_arrays(N_SPEEDS)
+        # No permite enviar funciones en options, por lo que mando los datos y que genere la función en el otro lado
         obs, info = train_env.reset(
             seed = config.seed + ep,
-            options={
-                "speed_function": get_random_speed_function(N_SPEEDS),
+            options = {
+                "speed_t": times,
+                "speed_y": speeds,
                 "n_speeds": N_SPEEDS
             }
         )
