@@ -42,7 +42,15 @@ class SAC():
         self.target_critic_1.load_state_dict(self.critic_1.state_dict())
         self.target_critic_2.load_state_dict(self.critic_2.state_dict())
 
-
+        if getattr(config, "use_compile", False):
+            try:
+                self.actor = torch.compile(self.actor)
+                self.critic_1 = torch.compile(self.critic_1)
+                self.critic_2 = torch.compile(self.critic_2)
+                # los targets no hace falta compilarlos porque casi no se entrenan
+            except Exception as e:
+                print("\nNO MODEL COMPILE\n", e)
+            
         self.actor_opt = optim.Adam(self.actor.parameters(), lr = config.actor_lr)
         self.critic_1_opt = optim.Adam(self.critic_1.parameters(), lr = config.critic_lr)
         self.critic_2_opt = optim.Adam(self.critic_2.parameters(), lr = config.critic_lr)
