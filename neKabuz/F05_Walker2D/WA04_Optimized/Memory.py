@@ -14,14 +14,26 @@ class ReplayBuffer:
         self.dones = np.zeros((size, 1), dtype = np.float32)
 
     def add(self, obs, act, rew, next_obs, done):
-        self.obs[self.ptr] = obs
-        self.acts[self.ptr] = act
-        self.rews[self.ptr] = rew
-        self.next_obs[self.ptr] = next_obs
-        self.dones[self.ptr] = done
+        self.add_batch(
+            obs[np.newaxis, :],
+            act[np.newaxis, :],
+            np.array([[rew]], dtype = np.float32),
+            next_obs[np.newaxis, :],
+            np.array([[done]], dtype = np.float32),
+        )
 
-        self.ptr = (self.ptr + 1) % self.size
-        self.len = min(self.len + 1, self.size)
+    def add_batch(self, obs, acts, rews, next_obs, dones):
+        n = obs.shape[0]
+        idxs = (np.arange(n) + self.ptr) % self.size
+
+        self.obs[idxs] = obs
+        self.acts[idxs] = acts
+        self.rews[idxs] = rews.reshape(n, 1)
+        self.next_obs[idxs] = next_obs
+        self.dones[idxs] = dones.reshape(n, 1)
+
+        self.ptr = (self.ptr + n) % self.size
+        self.len = min(self.len + n, self.size)
 
     def sample(self, batch_size: int = 256, device: torch.device | None = None):
         idxs = np.random.randint(0, self.len, size = batch_size)

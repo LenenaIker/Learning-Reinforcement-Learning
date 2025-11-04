@@ -18,7 +18,7 @@ from Memory import ReplayBuffer
 @torch.no_grad()
 def __soft_update(target, source, tau):
     for tp, p in zip(target.parameters(), source.parameters()):
-        tp.data.mul_(1 - tau).add_(p.data, alpha=tau)
+        tp.data.mul_(1 - tau).add_(p.data, alpha = tau)
 
 class SAC():
     def __init__(self, obs_space: Box, act_space: Box, config: Config, device: torch.device, *args, **kwargs):
@@ -37,9 +37,9 @@ class SAC():
         self.critic_2 = Critic(self.obs_dim, self.act_dim).to(device)
         
         if config.use_compile:
-            self.actor = torch.compile(self.actor)
-            self.critic_1 = torch.compile(self.critic_1)
-            self.critic_2 = torch.compile(self.critic_2)
+            self.actor = torch.compile(self.actor, mode = "reduce-overhead")
+            self.critic_1 = torch.compile(self.critic_1, mode = "reduce-overhead")
+            self.critic_2 = torch.compile(self.critic_2, mode = "reduce-overhead")
             
         self.target_critic_1 = Critic(self.obs_dim, self.act_dim).to(device)
         self.target_critic_2 = Critic(self.obs_dim, self.act_dim).to(device)
@@ -51,7 +51,7 @@ class SAC():
         self.critic_1_opt = optim.Adam(self.critic_1.parameters(), lr = config.critic_lr)
         self.critic_2_opt = optim.Adam(self.critic_2.parameters(), lr = config.critic_lr)
 
-        # SAC usa alpha cómo temperatura para controlar el equilibrio entre maximizar el reforzamiento esperado y maximizar la entropía del comportamiento.
+
         self.log_alpha = torch.tensor(np.log(getattr(config, "alpha_init", 0.2)), device = self.device, requires_grad = True)
         self.alpha_opt = optim.Adam([self.log_alpha], lr = getattr(config, "alpha_lr", 3e-4))
         self.target_entropy = (-float(self.act_dim) if getattr(config, "target_entropy", None) is None else config.target_entropy)
@@ -60,13 +60,26 @@ class SAC():
 
         self.update_step = 0
 
+        torch.set_float32_matmul_precision("high")
+        if torch.cuda.is_available():
+            torch.backends.cuda.matmul.allow_tf32 = True
 
     def act(self, obs: np.ndarray, explore: bool = True) -> np.ndarray:
         with torch.no_grad():
-            obs_t = torch.from_numpy(obs).to(self.device, non_blocking = True).unsqueeze(0)
-            action_unit, _ = self.actor(obs_t, deterministic = not explore, with_logprob = False)
+            obs_t = torch.as_tensor(obs, dtype = torch.float32, device = self.device)
+            single = False
+            if obs_t.dim() == 1:
+                obs_t = obs_t.unsqueeze(0)
+                single = True
+
+            action_unit, _ = self.actor(
+                obs_t,
+                deterministic = not explore,
+                with_logprob = False
+            )
             rescaled = (action_unit + 1) * 0.5 * self.act_range + self.act_low
-        return rescaled.squeeze(0).cpu().numpy()
+            acts = rescaled.cpu().numpy()
+            return acts[0] if single else acts
 
 
     @torch.no_grad()
@@ -153,8 +166,24 @@ class SAC():
         self.update_step += 1
         return metrics
 
-    def push(self, *args, **kwargs):
-        self.memory.add(*args, **kwargs)
+    def push(self, obs, act, rew, next_obs, done):
+            obs = np.asarray(obs, dtype = np.float32)
+            act = np.asarray(act, dtype = np.float32)
+            next_obs = np.asarray(next_obs, dtype = np.float32)
+            rew = np.asarray(rew, dtype = np.float32)
+            done = np.asarray(done, dtype = np.float32)
+
+            if obs.ndim == 1:
+                self.memory.add(obs, act, float(rew), next_obs, float(done))
+            else:
+                self.memory.add_batch(
+                    obs,
+                    act,
+                    rew.reshape(-1, 1),
+                    next_obs,
+                    done.reshape(-1, 1),
+                )
+
 
     def save(self, path: str):
         os.makedirs(os.path.dirname(path), exist_ok = True)
