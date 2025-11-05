@@ -25,7 +25,6 @@ def make_env(seed, n_speeds, config):
         )
         env = WalkerWithCommand(
             env = env,
-            speed_function = get_random_speed_function(n_speeds),
             n_speeds = n_speeds,
             penalty = 1.0
         )

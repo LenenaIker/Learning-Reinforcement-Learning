@@ -4,7 +4,7 @@ from dataclasses import dataclass
 class Config:
     
     seed: int = 42
-    use_compile = True
+    use_compile = False # Me ha dado muchos problemas. Recomiendo mantenerlo en False.
 
     # Env
     env_id: str = "Walker2d-v5"

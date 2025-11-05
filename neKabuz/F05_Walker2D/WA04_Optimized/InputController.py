@@ -145,7 +145,7 @@ def run_signal_builder():
             self.canvas.redraw()
 
         def save_and_close(self):
-            self.data = __df_to_function(self.canvas.get_data())
+            self.data = self.canvas.get_data()
             self.close()
 
     app = QtWidgets.QApplication(sys.argv)
@@ -155,7 +155,7 @@ def run_signal_builder():
     return w.data
 
 
-def __df_to_function(df, clamp = True):
+def df_to_function(df, clamp = True):
     t = np.asarray(df["t"].values, dtype = float)
     y = np.asarray(df["y"].values, dtype = float)
     idx = np.argsort(t)
@@ -200,3 +200,4 @@ def random_speed_arrays(n_speeds: int):
     t = np.linspace(0.0, 10.0, n_speeds, dtype=np.float32)
     y = np.random.uniform(-1.0, 1.0, size=n_speeds).astype(np.float32)
     return t, y
+

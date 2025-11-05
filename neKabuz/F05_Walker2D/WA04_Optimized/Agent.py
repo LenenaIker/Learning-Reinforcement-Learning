@@ -216,5 +216,5 @@ class SAC():
         self.critic_1_opt.load_state_dict(ckpt["critic_1_opt"])
         self.critic_2_opt.load_state_dict(ckpt["critic_2_opt"])
         # alpha
-        self.log_alpha.data = torch.tensor(np.log(ckpt.get("log_alpha", getattr(self.config, "alpha_init", 0.2))), device = self.device)
+        self.log_alpha = ckpt["log_alpha"]
         self.alpha_opt.load_state_dict(ckpt["alpha_opt"])

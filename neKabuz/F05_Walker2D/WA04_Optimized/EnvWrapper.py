@@ -21,8 +21,7 @@ def _make_interp_function(t: np.ndarray, y: np.ndarray, clamp: bool = True):
 
 
 class WalkerWithCommand(gym.Wrapper):
-    def __init__(self, env: gym.Env, speed_function, n_speeds: int,
-                 penalty: float = 1.0, speed_name: str = "x_velocity"):
+    def __init__(self, env: gym.Env,  n_speeds: int, penalty: float = 1.0, speed_function = None, speed_name: str = "x_velocity"):
         super().__init__(env)
         self.speed_function = speed_function
         self.n_speeds = n_speeds
@@ -54,7 +53,7 @@ class WalkerWithCommand(gym.Wrapper):
 
         self.t = 0
         obs, info = self.env.reset(seed = seed, **kwargs)
-        speed = self.speed_function(0.0)
+        speed = 0.0
         obs = np.concatenate([obs, [speed]]).astype(np.float32)
         return obs, info
 
