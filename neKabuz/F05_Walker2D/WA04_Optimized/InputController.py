@@ -1,4 +1,3 @@
-import sys
 import numpy as np
 
 X_MIN, X_MAX = 0.0, 10.0
@@ -8,9 +7,67 @@ X_DEFAULT = np.array([0.0, 2.0, 4.0, 6.0, 8.0, 10.0], dtype = float)
 Y_DEFAULT = np.array([0.0, 0.8, 0.0, -0.8, 0.0, 0.6], dtype = float)
 
 
+def df_to_function(df, clamp = True):
+    t = np.asarray(df["t"].values, dtype = float)
+    y = np.asarray(df["y"].values, dtype = float)
+    idx = np.argsort(t)
+    t = t[idx]; y = y[idx]
+
+    left = y[0] if clamp else np.nan
+    right = y[-1] if clamp else np.nan
+
+    def f(tq):
+        tq_arr = np.asarray(tq, dtype = float)
+        vals = np.interp(tq_arr, t, y, left = left, right = right)
+        return float(vals) if np.isscalar(tq) else vals
+
+    return f
+
+
+def ndarrays_to_function(t: np.ndarray, y: np.ndarray, clamp: bool = True):
+    t = np.asarray(t, dtype = float)
+    y = np.asarray(y, dtype = float)
+
+    # aseguramos orden
+    idx = np.argsort(t)
+    t = t[idx]
+    y = y[idx]
+
+    left = y[0] if clamp else np.nan
+    right = y[-1] if clamp else np.nan
+
+    def f(tq):
+        tq_arr = np.asarray(tq, dtype = float)
+        vals = np.interp(tq_arr, t, y, left = left, right = right)
+        return float(vals) if np.isscalar(tq) else vals
+
+    return f
+
+def get_random_speed_function(n: int = 10):
+    t = np.linspace(X_MIN, X_MAX, n, dtype = float)
+    y = np.random.uniform(-1.0, 1.0, size = n).astype(float)
+    return ndarrays_to_function(t, y)
+
+def random_speed_arrays(n_speeds: int):
+    t = np.linspace(0.0, 10.0, n_speeds, dtype = np.float32)
+    y = np.random.uniform(-1.0, 1.0, size = n_speeds).astype(np.float32)
+    return t, y
+
+def random_smooth_speed_arrays(n_speeds: int, step_std: float = 0.1):
+    t = np.linspace(0.0, 10.0, n_speeds, dtype = np.float32)
+    steps = np.random.normal(loc = 0.0, scale = step_std, size = n_speeds).astype(np.float32)
+
+    y = np.cumsum(steps)
+    y = np.clip(y, -1.0, 1.0)
+    return t, y
+
+
+
 # Honea muitzet, hola ezbaiot deitzen eztu importatzen, ta eztet RunPod barrun instalatu beharko
 def run_signal_builder():
     import pandas as pd
+    import sys
+
     from PyQt5 import QtWidgets
     from matplotlib.figure import Figure
     from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg, NavigationToolbar2QT
@@ -153,51 +210,4 @@ def run_signal_builder():
     w.show()
     app.exec_()
     return w.data
-
-
-def df_to_function(df, clamp = True):
-    t = np.asarray(df["t"].values, dtype = float)
-    y = np.asarray(df["y"].values, dtype = float)
-    idx = np.argsort(t)
-    t = t[idx]; y = y[idx]
-
-    left = y[0] if clamp else np.nan
-    right = y[-1] if clamp else np.nan
-
-    def f(tq):
-        tq_arr = np.asarray(tq, dtype = float)
-        vals = np.interp(tq_arr, t, y, left = left, right = right)
-        return float(vals) if np.isscalar(tq) else vals
-
-    return f
-
-
-def __ndarrays_to_function(t: np.ndarray, y: np.ndarray, clamp: bool = True):
-    t = np.asarray(t, dtype = float)
-    y = np.asarray(y, dtype = float)
-
-    # aseguramos orden
-    idx = np.argsort(t)
-    t = t[idx]
-    y = y[idx]
-
-    left = y[0] if clamp else np.nan
-    right = y[-1] if clamp else np.nan
-
-    def f(tq):
-        tq_arr = np.asarray(tq, dtype=float)
-        vals = np.interp(tq_arr, t, y, left=left, right=right)
-        return float(vals) if np.isscalar(tq) else vals
-
-    return f
-
-def get_random_speed_function(n: int = 10):
-    t = np.linspace(X_MIN, X_MAX, n, dtype = float)
-    y = np.random.uniform(-1.0, 1.0, size = n).astype(float)
-    return __ndarrays_to_function(t, y)
-
-def random_speed_arrays(n_speeds: int):
-    t = np.linspace(0.0, 10.0, n_speeds, dtype=np.float32)
-    y = np.random.uniform(-1.0, 1.0, size=n_speeds).astype(np.float32)
-    return t, y
 

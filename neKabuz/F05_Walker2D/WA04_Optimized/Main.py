@@ -8,7 +8,7 @@ import re
 
 from Agent import SAC
 from Config import Config
-from InputController import random_speed_arrays, get_random_speed_function
+from InputController import random_smooth_speed_arrays
 from EnvWrapper import WalkerWithCommand
 
 def set_seed(seed: int):
@@ -80,7 +80,7 @@ if __name__ == "__main__":
     agent = SAC(train_env.single_observation_space, train_env.single_action_space, config, device)
 
     total_steps = 0
-    best_eval = 300
+    best_eval = -1e9
 
     if MODEL_NAME is not None:
         agent.load(os.path.join(config.ckpt_dir, MODEL_NAME))
@@ -88,7 +88,7 @@ if __name__ == "__main__":
         print("Model loaded:", MODEL_NAME, "| Best Evaluation =", best_eval)
 
     for ep in range(1, config.total_episodes + 1):
-        times, speeds = random_speed_arrays(N_SPEEDS)
+        times, speeds = random_smooth_speed_arrays(N_SPEEDS)
         # No permite enviar funciones en options, por lo que mando los datos y que genere la función en el otro lado
         obs, info = train_env.reset(
             seed = config.seed + ep,
