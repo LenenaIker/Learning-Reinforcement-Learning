@@ -21,10 +21,10 @@ def _make_interp_function(t: np.ndarray, y: np.ndarray, clamp: bool = True):
 
 
 class WalkerWithCommand(gym.Wrapper):
-    def __init__(self, env: gym.Env,  n_speeds: int, penalty: float = 1.0, speed_function = None, speed_name: str = "x_velocity"):
+    def __init__(self, env: gym.Env, penalty: float = 1.0, speed_name: str = "x_velocity"):
         super().__init__(env)
-        self.speed_function = speed_function
-        self.n_speeds = n_speeds
+        self.speed_function = None
+        self.n_speeds = None
         self.penalty = penalty
         self.speed_name = speed_name
         self.t = 0
@@ -34,30 +34,33 @@ class WalkerWithCommand(gym.Wrapper):
         self.observation_space = gym.spaces.Box(
             low = np.concatenate([old_low, [-np.inf]]),
             high = np.concatenate([old_high, [np.inf]]),
-            dtype = np.float32
+            dtype = np.float64
         )
 
-    def reset(self, *, seed = None, options = None, **kwargs):
-        if options is not None:
-            # antes: options["speed_function"] traía una función (no picklable)
-            # ahora: puede traer arrays
+    def reset(self, *, seed: int | None = None, options: dict | None = None, **kwargs):
+        if options is None:
+            t_arr = np.array([0.0], dtype = float)
+            y_arr = np.array([0.0], dtype = float)
+        else:
             t_arr = options.get("speed_t", None)
             y_arr = options.get("speed_y", None)
-            ns = options.get("n_speeds", None)
+            if t_arr is None or y_arr is None:
+                t_arr = np.array([0.0], dtype = float)
+                y_arr = np.array([0.0], dtype = float)
 
-            if t_arr is not None and y_arr is not None:
-                self.speed_function = _make_interp_function(t_arr, y_arr)
+        self.n_speeds = len(t_arr)
 
-            if ns is not None:
-                self.n_speeds = ns
+        self.speed_function = _make_interp_function(t_arr, y_arr)
 
         self.t = 0
         obs, info = self.env.reset(seed = seed, **kwargs)
-        speed = 0.0
+
+        speed = self.speed_function(0.0)
         obs = np.concatenate([obs, [speed]]).astype(np.float32)
         return obs, info
 
     def step(self, action):
+        # Default: reward = healthy_reward + forward_reward - ctrl_cost
         obs, rew, terminated, truncated, info = self.env.step(action)
         self.t += 1
 
@@ -66,8 +69,12 @@ class WalkerWithCommand(gym.Wrapper):
         v_real = info.get(self.speed_name, None)
 
         if v_real is not None:
+            # speed_reward:
             track_penalty = self.penalty * (v_real - v_desired) ** 2
             rew = rew - track_penalty
+            # Modified: reward = healthy_reward + forward_reward - ctrl_cost - speed_reward
+            # Cómo voy a cambiar el parametro del peso del forward_reward a 0, mi reward no va a estar sesgado a andar hacía adelante.
+            # Modified == reward = healthy_reward - ctrl_cost - speed_reward
 
         obs = np.concatenate([obs, [v_desired]]).astype(np.float32)
         return obs, rew, terminated, truncated, info

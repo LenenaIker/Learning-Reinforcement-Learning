@@ -17,18 +17,24 @@ def set_seed(seed: int):
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
 
-def make_env(seed, n_speeds, config):
+def make_env(seed, config):
     def thunk():
         env = gym.make(
             config.env_id,
             max_episode_steps = config.max_steps_per_episode,
+            forward_reward_weight = 0.0
         )
         env = WalkerWithCommand(
             env = env,
-            n_speeds = n_speeds,
             penalty = 1.0
         )
-        env.reset(seed = seed)
+        env.reset(
+            seed = seed,
+            options = {
+                "speed_t": np.array([0.0], dtype = float),
+                "speed_y": np.array([0.0], dtype = float)
+            }    
+        )
         return env
     return thunk
 
@@ -36,13 +42,11 @@ def evaluate(agent, eval_env, episodes = 5, n_speeds = 10):
     n_envs = eval_env.num_envs
     returns = []
     for _ in range(episodes):
-        times = np.linspace(0.0, 10.0, n_speeds, dtype=np.float32)
-        speeds = np.random.uniform(-1.0, 1.0, size=n_speeds).astype(np.float32)
+        times, speeds = random_smooth_speed_arrays(n_speeds)
         obs, _ = eval_env.reset(
             options = {
                 "speed_t": times,
-                "speed_y": speeds,
-                "n_speeds": n_speeds
+                "speed_y": speeds
             }
         )
         
@@ -74,8 +78,8 @@ if __name__ == "__main__":
     num_train_envs = 16
     num_eval_envs = 4
 
-    train_env = gym.vector.AsyncVectorEnv([make_env(config.seed + i, N_SPEEDS, config) for i in range(num_train_envs)])
-    eval_env = gym.vector.SyncVectorEnv([make_env(config.seed + 100 + i, N_SPEEDS, config) for i in range(num_eval_envs)])
+    train_env = gym.vector.AsyncVectorEnv([make_env(config.seed + i, config) for i in range(num_train_envs)])
+    eval_env = gym.vector.SyncVectorEnv([make_env(config.seed + 100 + i, config) for i in range(num_eval_envs)])
 
     agent = SAC(train_env.single_observation_space, train_env.single_action_space, config, device)
 
@@ -89,13 +93,11 @@ if __name__ == "__main__":
 
     for ep in range(1, config.total_episodes + 1):
         times, speeds = random_smooth_speed_arrays(N_SPEEDS)
-        # No permite enviar funciones en options, por lo que mando los datos y que genere la función en el otro lado
         obs, info = train_env.reset(
             seed = config.seed + ep,
             options = {
                 "speed_t": times,
-                "speed_y": speeds,
-                "n_speeds": N_SPEEDS
+                "speed_y": speeds
             }
         )
 
@@ -106,7 +108,7 @@ if __name__ == "__main__":
             if total_steps < config.warmup_steps:
                 act = np.stack(
                     [train_env.single_action_space.sample()
-                     for _ in range(num_train_envs)]
+                    for _ in range(num_train_envs)]
                 ).astype(np.float32)
             else:
                 act = agent.act(obs, explore = True)
