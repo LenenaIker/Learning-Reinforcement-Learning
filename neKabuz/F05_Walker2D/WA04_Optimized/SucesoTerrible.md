@@ -12,23 +12,19 @@ Reward function modificada:
 Ejemplo: estos son logs de algunas evaluaciones:
 
 ``` bash
-
 [Eval] Episodios 1881-1900: Retorno medio = -18.38
 [Eval] Episodios 1901-1920: Retorno medio = -9.75
 [Eval] Episodios 1921-1940: Retorno medio = -23.37
 [Eval] Episodios 1941-1960: Retorno medio = -58.34
 [Eval] Episodios 1961-1980: Retorno medio = -127.22
-
 ```
 
 Para compararlo, podemos observar evaluaciones guardadas con la reward function por defecto, donde:
 
 ``` bash
-
 Episodio 0980: Retorno medio = 3565
 Episodio 1420: Retorno medio = 4007
 Episodio 2670: Retorno medio = 4777
-
 ```
 
 Por lo que, teniendo en cuenta qué:
@@ -52,3 +48,40 @@ No se si dejarlo hasta mañana. Acabo de añadir 10€ de saldo por si hay suert
 
 
 Por alguna razón no avanza. Miro las telemetrias y están a 0. Me rindo, lo intentaré mañana.
+
+
+Además del problema del reward_function, aumentar la cantidad de perceptrones por capa no ha sido buena idea. Ha resultado en overfitting. He vuelto a bajar los perceptrones y parece ser qué ya está obteniendo resultados. 
+
+``` bash
+Episodio 101 | Retorno medio:    81.07
+Episodio 102 | Retorno medio:   656.05
+Episodio 103 | Retorno medio:    86.19
+Episodio 104 | Retorno medio:    69.16
+Episodio 105 | Retorno medio:   203.52
+Episodio 106 | Retorno medio:   383.57
+Episodio 107 | Retorno medio:   101.87
+Episodio 108 | Retorno medio:   200.29
+Episodio 109 | Retorno medio:   372.42
+Episodio 110 | Retorno medio:   319.69
+Episodio 111 | Retorno medio:   279.44
+Episodio 112 | Retorno medio:   235.00
+Episodio 113 | Retorno medio:   400.50
+Episodio 114 | Retorno medio:   171.98
+Episodio 115 | Retorno medio:   147.61
+Episodio 116 | Retorno medio:   131.92
+Episodio 117 | Retorno medio:   194.00
+Episodio 118 | Retorno medio:   149.68
+Episodio 119 | Retorno medio:   197.61
+Episodio 120 | Retorno medio:   354.99
+[Eval] Episodios 101-120: Retorno medio = 134.54
+```
+
+Aún así he añadido lo siguiente para guardar modelos cada 250 episodios:
+
+``` python
+if ep % config.save_every == 0:
+    path = os.path.join(config.ckpt_dir, f"latest_ep{ep}.pt")
+    agent.save(path)
+```
+
+
