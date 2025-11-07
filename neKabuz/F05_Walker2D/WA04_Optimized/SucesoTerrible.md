@@ -76,6 +76,8 @@ Episodio 120 | Retorno medio:   354.99
 [Eval] Episodios 101-120: Retorno medio = 134.54
 ```
 
+Me da un poco de pena porqué estoy alquilando una tarjeta grafica para hacer uso de solo el 20%, cuando antes me acercaba al 80%. Pero de nada sirve aumentar el uso si mi modelo no llega a aprender.
+
 Aún así he añadido lo siguiente para guardar modelos cada 250 episodios:
 
 ``` python
