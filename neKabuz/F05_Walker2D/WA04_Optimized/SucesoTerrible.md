@@ -3,10 +3,10 @@ He cometido varios errores a la hora de entrenar WA04_Optimized en Runpod, lo qu
     2. A la hora de modificar la función de reward, he quitado forward_reward y he añadido una penalización por tener una velocidad diferente a la que yo externamente haya seleccionado. El forward_reward era relevante, ya que daba puntos por avanzar; al no tenerlo, mi reward no crece tan fácilmente. Esto es muy relevante, porque mi script guardaba la mejor versión, considerando la mejor versión, aquella con mayor reward. Esto ha hecho que no se guarde ningún modelo, por lo que he estado entrenando en bano.
 
 Reward function default:
-reward = healthy_reward + forward_reward - ctrl_cost
+`reward = healthy_reward + forward_reward - ctrl_cost`
 
 Reward function modificada:
-reward = healthy_reward - ctrl_cost - speed_reward
+`reward = healthy_reward - ctrl_cost - speed_reward`
 
 
 Ejemplo: estos son logs de algunas evaluaciones:
@@ -31,5 +31,9 @@ me encuentro en una situación donde la única posibilidad de obtener un modelo 
 
 En el entrenamiento la función de velocidad es aleatoria, por lo que es posible que le toqué una muy fácil, permitiéndole tener un reward suficientemente alto.
 
-El reward más alto por ahora ha sido 73 y ha ocurrido en el episodio 20.
-Son las 00:52 y tengo pocas expectativas de que vaya a conseguir un modelo.
+Ya van 11h 22m de ejecución, el reward más alto por ahora ha sido 73 y ha ocurrido en el episodio 20.
+01:02 y tengo pocas expectativas de que vaya a conseguir un modelo.
+
+[Eval] Episodios 2061-2080: Retorno medio = 18.83
+
+Ojito, tremendo intento de aproximarse al record. Ha sucedido a las 01:16.
