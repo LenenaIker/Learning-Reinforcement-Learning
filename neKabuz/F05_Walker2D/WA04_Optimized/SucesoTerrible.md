@@ -37,3 +37,5 @@ Ya van 11h 22m de ejecución, el reward más alto por ahora ha sido 73 y ha ocur
 [Eval] Episodios 2061-2080: Retorno medio = 18.83
 
 Ojito, tremendo intento de aproximarse al record. Ha sucedido a las 01:16.
+
+No se si dejarlo hasta mañana. Acabo de añadir 10€ de saldo por si hay suerte.
