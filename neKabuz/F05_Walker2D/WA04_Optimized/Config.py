@@ -39,6 +39,7 @@ class Config:
     eval_every: int = 20
     eval_episodes: int = 5
     target_update_every = 1
+    save_every = 250
 
     # Checkpoints / best models 
     ckpt_dir: str = "neKabuz/F05_Walker2D/WA04_Optimized/models_sac_walker2d"

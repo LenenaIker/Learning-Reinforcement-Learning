@@ -10,7 +10,7 @@ def fanin_init(layer: nn.Linear):
     nn.init.uniform_(layer.bias.data, -bound, bound)
 
 class MLP(nn.Module):
-    def __init__(self, input_dim: int, output_dim: int, hidden = (1024, 1024), activation_fn = nn.ReLU, out_act = None):
+    def __init__(self, input_dim: int, output_dim: int, hidden = (256, 256), activation_fn = nn.ReLU, out_act = None):
         super().__init__()
         layers = []
         
@@ -38,7 +38,7 @@ class MLP(nn.Module):
 
 
 class StochasticActor(nn.Module):
-    def __init__(self, obs_dim: int, act_dim: int, hidden = (1024, 1024), min_log_std: float = -20.0, max_log_std: float = 2.0, act_limit: float = 1.0):
+    def __init__(self, obs_dim: int, act_dim: int, hidden = (256, 256), min_log_std: float = -20.0, max_log_std: float = 2.0, act_limit: float = 1.0):
         super().__init__()
         self.body = MLP(
             obs_dim,
@@ -113,7 +113,7 @@ class Critic(nn.Module):
         self.q = MLP(
             obs_dim + act_dim, # Input shape == Obserbations + Actions shape
             1, # Output shape == Value
-            hidden = (1024, 1024)
+            hidden = (256, 256)
         )
 
     def forward(self, obs, act):

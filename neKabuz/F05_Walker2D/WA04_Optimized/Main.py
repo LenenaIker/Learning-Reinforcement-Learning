@@ -142,6 +142,11 @@ if __name__ == "__main__":
                 path = os.path.join(config.ckpt_dir, f"best_ep{ep}_ret{avg_ret:.1f}.pt")
                 agent.save(path)
                 print(f"Guardado mejor checkpoint en {path}")
+        
+        
+        if ep % config.save_every == 0:
+            path = os.path.join(config.ckpt_dir, f"latest_ep{ep}.pt")
+            agent.save(path)
 
     train_env.close()
     eval_env.close()

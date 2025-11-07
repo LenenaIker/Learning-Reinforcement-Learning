@@ -10,17 +10,26 @@ Reward function modificada:
 
 
 Ejemplo: estos son logs de algunas evaluaciones:
+
+``` bash
+
 [Eval] Episodios 1881-1900: Retorno medio = -18.38
 [Eval] Episodios 1901-1920: Retorno medio = -9.75
 [Eval] Episodios 1921-1940: Retorno medio = -23.37
 [Eval] Episodios 1941-1960: Retorno medio = -58.34
 [Eval] Episodios 1961-1980: Retorno medio = -127.22
 
+```
+
 Para compararlo, podemos observar evaluaciones guardadas con la reward function por defecto, donde:
+
+``` bash
+
 Episodio 0980: Retorno medio = 3565
 Episodio 1420: Retorno medio = 4007
 Episodio 2670: Retorno medio = 4777
 
+```
 
 Por lo que, teniendo en cuenta qué:
     healthy_reward = punto por no morirse por step
@@ -38,4 +47,8 @@ Ya van 11h 22m de ejecución, el reward más alto por ahora ha sido 73 y ha ocur
 
 Ojito, tremendo intento de aproximarse al record. Ha sucedido a las 01:16.
 
-No se si dejarlo hasta mañana. Acabo de añadir 10€ de saldo por si hay suerte.
+No se si dejarlo hasta mañana. Acabo de añadir 10€ de saldo por si hay suerte (Gambling).
+
+
+
+Por alguna razón no avanza. Miro las telemetrias y están a 0. Me rindo, lo intentaré mañana.
