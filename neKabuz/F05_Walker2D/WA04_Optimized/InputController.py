@@ -48,17 +48,17 @@ def get_random_speed_function(n: int = 10):
     y = np.random.uniform(-1.0, 1.0, size = n).astype(float)
     return ndarrays_to_function(t, y)
 
-def random_speed_arrays(n_speeds: int):
+def random_speed_arrays(n_speeds: int, range: float = 7.0):
     t = np.linspace(0.0, 10.0, n_speeds, dtype = np.float32)
-    y = np.random.uniform(-1.0, 1.0, size = n_speeds).astype(np.float32)
+    y = np.random.uniform(-range, range, size = n_speeds).astype(np.float32)
     return t, y
 
-def random_smooth_speed_arrays(n_speeds: int, step_std: float = 0.1):
+def random_smooth_speed_arrays(n_speeds: int, std: float = 0.7, mean: float = 0.06):
     t = np.linspace(0.0, 10.0, n_speeds, dtype = np.float32)
-    steps = np.random.normal(loc = 0.0, scale = step_std, size = n_speeds).astype(np.float32)
 
-    y = np.cumsum(steps)
-    y = np.clip(y, -1.0, 1.0)
+    steps = np.random.normal(loc = mean, scale = std, size = n_speeds).astype(np.float32)
+    y = np.cumsum(steps) # Va a tener un sesgo marcado en caso de qué mean no sea 0
+    
     return t, y
 
 

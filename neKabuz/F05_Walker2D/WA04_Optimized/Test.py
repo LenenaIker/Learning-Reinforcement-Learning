@@ -4,12 +4,18 @@ import mujoco as mj
 import torch
 import numpy as np
 
-from os import listdir
+from pathlib import Path
 
 from InputController import run_signal_builder, get_random_speed_function
 from Agent import SAC
 from Config import Config
 from EnvWrapper import WalkerWithCommand
+
+
+def listar_archivos_recursivo(base_dir):
+    base_path = Path(base_dir)
+    return [str(path.relative_to(base_path)) for path in base_path.rglob('*') if path.is_file()]
+
 
 def set_follow_cam(env, body_name = "torso", distance = 4.5, elevation = -15, azimuth = 120):
     """
@@ -45,7 +51,7 @@ def set_follow_cam(env, body_name = "torso", distance = 4.5, elevation = -15, az
 
 config = Config()
 
-model_names = listdir(config.ckpt_dir)
+model_names = listar_archivos_recursivo(config.ckpt_dir)
 
 index = int(input("\n" + "\n".join([f"{i}. {s}" for i, s in enumerate(model_names, start = 1)]) + "\n\nSelect model (int):")) - 1
 

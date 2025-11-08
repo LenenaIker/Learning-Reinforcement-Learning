@@ -2,6 +2,7 @@ import gymnasium as gym
 import mujoco as mj
 
 import torch
+import pandas as pd
 
 from os import listdir
 
@@ -61,6 +62,8 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 agent = SAC(env.observation_space, env.action_space, config, device)
 agent.load(path = config.ckpt_dir + "/" + model_names[index], map_location = device)
 
+speeds = []
+
 try:
     for ep in range(10):
         obs, info = env.reset()
@@ -69,8 +72,14 @@ try:
             act = agent.act(obs = obs, explore = True)
             next_obs, reward, terminated, truncated, info = env.step(act)
 
+            speeds.append(info.get("x_velocity", None))
             obs = next_obs
 except Exception as e:
     print(e)
 finally:
     env.close()
+
+
+speeds = pd.DataFrame({"speeds": speeds})
+speeds = speeds.fillna(0)
+print(speeds.describe())
