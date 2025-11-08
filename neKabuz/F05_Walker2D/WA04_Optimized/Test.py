@@ -62,7 +62,6 @@ env = gym.make(
 
 env = WalkerWithCommand(
     env = env,
-    n_speeds = 10,
     penalty = 1.0
 )
 
@@ -80,8 +79,7 @@ try:
             seed = config.seed + ep,
             options = {
                 "speed_t": times,
-                "speed_y": speeds,
-                "n_speeds": 10
+                "speed_y": speeds
             }
         )
         for t in range(config.max_steps_per_episode):
