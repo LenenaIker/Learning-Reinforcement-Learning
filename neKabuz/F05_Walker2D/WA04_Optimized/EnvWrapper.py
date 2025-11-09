@@ -21,12 +21,14 @@ def _make_interp_function(t: np.ndarray, y: np.ndarray, clamp: bool = True):
 
 
 class WalkerWithCommand(gym.Wrapper):
-    def __init__(self, env: gym.Env, penalty: float = 1.0, speed_name: str = "x_velocity"):
+    def __init__(self, env: gym.Env, penalty_weight: float = 0.2, reward_weight: float = 1.0, speed_name: str = "x_velocity", sigma: float = 0.5):
         super().__init__(env)
         self.speed_function = None
         self.n_speeds = None
-        self.penalty = penalty
+        self.penalty_weight = penalty_weight
+        self.reward_weight = reward_weight
         self.speed_name = speed_name
+        self.sigma = sigma
         self.t = 0
 
         old_low  = self.observation_space.low
@@ -68,13 +70,12 @@ class WalkerWithCommand(gym.Wrapper):
         v_desired = self.speed_function(time)
         v_real = info.get(self.speed_name, None)
 
-        if v_real is not None:
-            # speed_reward:
-            track_penalty = self.penalty * (v_real - v_desired) ** 2
-            rew = rew - track_penalty
-            # Modified: reward = healthy_reward + forward_reward - ctrl_cost - speed_reward
-            # Cómo voy a cambiar el parametro del peso del forward_reward a 0, mi reward no va a estar sesgado a andar hacía adelante.
-            # Modified == reward = healthy_reward - ctrl_cost - speed_reward
+        # Speed
+        error = v_real - v_desired
+        track_reward = np.exp(- (error**2) / (2 * self.sigma**2)) # Premio V
+        rew = rew + self.reward_weight * track_reward - self.penalty_weight * (error**2) # Castigo V
+
+        # Modified: reward = healthy_reward - ctrl_cost + speed_reward - speed_penalty
 
         obs = np.concatenate([obs, [v_desired]]).astype(np.float32)
         return obs, rew, terminated, truncated, info

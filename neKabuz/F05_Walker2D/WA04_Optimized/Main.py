@@ -8,7 +8,7 @@ import re
 
 from Agent import SAC
 from Config import Config
-from InputController import random_smooth_speed_arrays
+from InputController import random_speed_arrays
 from EnvWrapper import WalkerWithCommand
 
 def set_seed(seed: int):
@@ -17,7 +17,7 @@ def set_seed(seed: int):
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
 
-def make_env(seed, config):
+def make_env(seed, config: Config):
     def thunk():
         env = gym.make(
             config.env_id,
@@ -26,7 +26,10 @@ def make_env(seed, config):
         )
         env = WalkerWithCommand(
             env = env,
-            penalty = 1.0
+            penalty_weight = config.speed_penalty_weight,
+            reward_weight = config.speed_reward_weight,
+            speed_name = "x_velocity",
+            sigma = config.sigma
         )
         env.reset(
             seed = seed,
@@ -42,7 +45,7 @@ def evaluate(agent, eval_env, episodes = 5, n_speeds = 10):
     n_envs = eval_env.num_envs
     returns = []
     for _ in range(episodes):
-        times, speeds = random_smooth_speed_arrays(n_speeds)
+        times, speeds = random_speed_arrays(n_speeds)
         obs, _ = eval_env.reset(
             options = {
                 "speed_t": times,
@@ -92,7 +95,7 @@ if __name__ == "__main__":
         print("Model loaded:", MODEL_NAME, "| Best Evaluation =", best_eval)
 
     for ep in range(1, config.total_episodes + 1):
-        times, speeds = random_smooth_speed_arrays(N_SPEEDS)
+        times, speeds = random_speed_arrays(N_SPEEDS)
         obs, info = train_env.reset(
             seed = config.seed + ep,
             options = {

@@ -48,9 +48,9 @@ def get_random_speed_function(n: int = 10):
     y = np.random.uniform(-1.0, 1.0, size = n).astype(float)
     return ndarrays_to_function(t, y)
 
-def random_speed_arrays(n_speeds: int, range: float = 7.0):
+def random_speed_arrays(n_speeds: int, start: float = -2.5, end: float = 4.0):
     t = np.linspace(0.0, 10.0, n_speeds, dtype = np.float32)
-    y = np.random.uniform(-range, range, size = n_speeds).astype(np.float32)
+    y = np.random.uniform(start, end, size = n_speeds).astype(np.float32)
     return t, y
 
 def random_smooth_speed_arrays(n_speeds: int, std: float = 0.7, mean: float = 0.06):
