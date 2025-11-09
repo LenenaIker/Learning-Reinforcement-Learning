@@ -1,6 +1,6 @@
 He cometido varios errores a la hora de entrenar WA04_Optimized en Runpod, lo que me ha llevado a perder aproximadamente 10 €. Los dos más relevantes son los siguientes:
     1. Al conectarme con SSH a Runpod, no usé herramientas como tmux, lo que me hizo que la ejecución quedase enlazada a mi terminal, perdiendo la ejecución al perder la conexión. En este caso, la solución ha sido fácil: usar tmux.
-    2. A la hora de modificar la función de reward, he quitado forward_reward y he añadido una penalización por tener una velocidad diferente a la que yo externamente haya seleccionado. El forward_reward era relevante, ya que daba puntos por avanzar; al no tenerlo, mi reward no crece tan fácilmente. Esto es muy relevante, porque mi script guardaba la mejor versión, considerando la mejor versión, aquella con mayor reward. Esto ha hecho que no se guarde ningún modelo, por lo que he estado entrenando en bano.
+    2. A la hora de modificar la función de reward, he quitado forward_reward y he añadido una penalización por tener una velocidad diferente a la que yo externamente haya seleccionado. El forward_reward era relevante, ya que daba puntos por avanzar; al no tenerlo, mi reward no crece tan fácilmente. Esto es crucial, porque mi script guardaba la mejor versión, considerando la mejor versión, aquella con mayor reward. Esto ha hecho que no se guarde ningún modelo, por lo que he estado entrenando en vano.
 
 Reward function default:
 `reward = healthy_reward + forward_reward - ctrl_cost`
@@ -43,14 +43,14 @@ Ya van 11h 22m de ejecución, el reward más alto por ahora ha sido 73 y ha ocur
 
 Ojito, tremendo intento de aproximarse al record. Ha sucedido a las 01:16.
 
-No se si dejarlo hasta mañana. Acabo de añadir 10€ de saldo por si hay suerte (Gambling).
+No sé si dejarlo hasta mañana. Acabo de añadir 10€ de saldo por si hay suerte (Gambling).
 
 
 
-Por alguna razón no avanza. Miro las telemetrias y están a 0. Me rindo, lo intentaré mañana.
+Por alguna razón no avanza. Miro las telemetrías y están a 0. Me rindo, lo intentaré mañana.
 
 
-Además del problema del reward_function, aumentar la cantidad de perceptrones por capa no ha sido buena idea. Ha resultado en overfitting. He vuelto a bajar los perceptrones y parece ser qué ya está obteniendo resultados. 
+Además del problema del reward_function, aumentar la cantidad de perceptrones por capa no ha sido buena idea. Ha resultado en overfitting. He vuelto a bajar los perceptrones y parece ser que ya está obteniendo resultados. 
 
 ``` bash
 Episodio 101 | Retorno medio:    81.07
@@ -76,9 +76,9 @@ Episodio 120 | Retorno medio:   354.99
 [Eval] Episodios 101-120: Retorno medio = 134.54
 ```
 
-Me da un poco de pena porqué estoy alquilando una tarjeta grafica para hacer uso de solo el 20%, cuando antes me acercaba al 80%. Pero de nada sirve aumentar el uso si mi modelo no llega a aprender.
+Me da un poco de pena porque estoy alquilando una tarjeta gráfica para hacer uso de solo el 20%, cuando antes me acercaba al 80%. Pero de nada sirve aumentar el uso si mi modelo no llega a aprender.
 
-Aún así he añadido lo siguiente para guardar modelos cada 250 episodios:
+Aun así he añadido lo siguiente para guardar modelos cada 250 episodios:
 
 ``` python
 if ep % config.save_every == 0:
@@ -86,4 +86,63 @@ if ep % config.save_every == 0:
     agent.save(path)
 ```
 
+
+# Parte 2
+
+He adaptado el reward function para que, en vez de ser una distribución normal en el rango [-1, 1], esté en [-6, 6].
+Esto debería de ayudar a generar más peticiones de velocidades alcanzables como 3 m/s.
+Además, he sesgado la distribución para que sea un poco positivista. Ya que al Walker2D, le cuesta andar hacia atrás.
+Por lo que pasaría de [-6, 6] a [-4.1, 5.1]
+
+Recomiendo ejecutar WA04_Optimized\comparation_random_speed_arrays.py para visualizar la distribución normal.
+
+El agente lleva 19h 25m entrenando y estos son los últimos logs:
+
+´´´ bash
+[Eval] Episodios 1041-1060: Retorno medio = -490.09
+Episodio 1061 | Retorno medio:   206.77
+Episodio 1062 | Retorno medio:    62.08
+Episodio 1063 | Retorno medio:    61.88
+Episodio 1064 | Retorno medio:    71.41
+Episodio 1065 | Retorno medio:   138.23
+Episodio 1066 | Retorno medio:   -22.83
+Episodio 1067 | Retorno medio:    37.38
+Episodio 1068 | Retorno medio:   198.51
+Episodio 1069 | Retorno medio:   227.82
+Episodio 1070 | Retorno medio:    37.18
+Episodio 1071 | Retorno medio: -1363.37
+Episodio 1072 | Retorno medio:    41.71
+Episodio 1073 | Retorno medio:   693.12
+Episodio 1074 | Retorno medio:   174.03
+Episodio 1075 | Retorno medio:   114.85
+Episodio 1076 | Retorno medio:   153.39
+Episodio 1077 | Retorno medio:   356.20
+Episodio 1078 | Retorno medio:   118.98
+Episodio 1079 | Retorno medio:  -206.60
+Episodio 1080 | Retorno medio:   485.94
+[Eval] Episodios 1061-1080: Retorno medio = -1041.03
+Episodio 1081 | Retorno medio:  -522.00
+Episodio 1082 | Retorno medio:    31.45
+Episodio 1083 | Retorno medio:   108.12
+Episodio 1084 | Retorno medio:     0.08
+Episodio 1085 | Retorno medio:   234.33
+Episodio 1086 | Retorno medio:    81.30
+Episodio 1087 | Retorno medio:   110.46
+Episodio 1088 | Retorno medio:   217.20
+Episodio 1089 | Retorno medio:   168.93
+Episodio 1090 | Retorno medio:   -79.95
+Episodio 1091 | Retorno medio:   -51.55
+Episodio 1092 | Retorno medio:    51.65
+Episodio 1093 | Retorno medio:     4.76
+Episodio 1094 | Retorno medio:    55.01
+Episodio 1095 | Retorno medio: -8224.31   <-- ¿Cómo ha llegado a un reward medio tan tan malo? JAJAJAJ, lo consideraré un logro.
+Episodio 1096 | Retorno medio:   -22.13
+Episodio 1097 | Retorno medio:  -186.41
+Episodio 1098 | Retorno medio:   340.60
+Episodio 1099 | Retorno medio:   269.70
+Episodio 1100 | Retorno medio:    99.61
+[Eval] Episodios 1081-1100: Retorno medio = -852.44
+´´´
+
+Son malas noticias. Por ahora no conozco la razón por la cual haya ocurrido esto. Quizás va siendo hora de añadir un sistema de logs/telemetrías más avanzado, estilo tensorboard.
 

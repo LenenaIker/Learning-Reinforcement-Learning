@@ -11,7 +11,7 @@ y1s = []
 y2s = []
 
 for _ in range(n_samples):
-    _, y1 = random_smooth_speed_arrays(n_speeds, std = 0.7, mean = 0.06)
+    _, y1 = random_smooth_speed_arrays(n_speeds)
     _, y2 = random_speed_arrays(n_speeds)
     y1s.append(y1)
     y2s.append(y2)
