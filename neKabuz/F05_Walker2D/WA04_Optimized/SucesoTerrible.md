@@ -146,3 +146,7 @@ Episodio 1100 | Retorno medio:    99.61
 
 Son malas noticias. Por ahora no conozco la razón por la cual haya ocurrido esto. Quizás va siendo hora de añadir un sistema de logs/telemetrías más avanzado, estilo tensorboard.
 
+Es posible que tenga que reducir el peso de la penalización por no tener la velocidad adecuada.
+Supongo qué al ser un número [-7, 7] al cuadrado (^2), se vuelve un número demasiado grande, que rompe mi función de reward. También podría aplicar abs(), para no usar ^2, o sqrt(+1), para limitar la influencia de diferencias enormes.
+
+
