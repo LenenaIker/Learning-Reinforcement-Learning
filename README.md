@@ -44,4 +44,6 @@ I have resolved it with SAC. It is an interesting algorithm because instead of p
   - WA02: I started using Runpod seriously. PyTorch has caused me fewer problems than TensorFlow. The model with the best score seems to have learned to run on one leg, but even so, it's fast and smooth, so I'm happy.
   - WA03: This is my first attempt at controlling the agent. The goal is to steer it like a radio-controlled toy. The code was never executed because I wanted to optimize it before launching it on Runpod. I soon realized that it needed more (a lot more) than just optimization.
   - WA04: I hope to achieve the goal.
+
+
 Until now, I have spent 40€ training models on Runpod.
