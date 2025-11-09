@@ -1,5 +1,7 @@
 He cometido varios errores a la hora de entrenar WA04_Optimized en Runpod, lo que me ha llevado a perder aproximadamente 10 €. Los dos más relevantes son los siguientes:
+
     1. Al conectarme con SSH a Runpod, no usé herramientas como tmux, lo que me hizo que la ejecución quedase enlazada a mi terminal, perdiendo la ejecución al perder la conexión. En este caso, la solución ha sido fácil: usar tmux.
+
     2. A la hora de modificar la función de reward, he quitado forward_reward y he añadido una penalización por tener una velocidad diferente a la que yo externamente haya seleccionado. El forward_reward era relevante, ya que daba puntos por avanzar; al no tenerlo, mi reward no crece tan fácilmente. Esto es crucial, porque mi script guardaba la mejor versión, considerando la mejor versión, aquella con mayor reward. Esto ha hecho que no se guarde ningún modelo, por lo que he estado entrenando en vano.
 
 Reward function default:
@@ -98,7 +100,7 @@ Recomiendo ejecutar WA04_Optimized\comparation_random_speed_arrays.py para visua
 
 El agente lleva 19h 25m entrenando y estos son los últimos logs:
 
-´´´ bash
+``` bash
 [Eval] Episodios 1041-1060: Retorno medio = -490.09
 Episodio 1061 | Retorno medio:   206.77
 Episodio 1062 | Retorno medio:    62.08
@@ -142,7 +144,7 @@ Episodio 1098 | Retorno medio:   340.60
 Episodio 1099 | Retorno medio:   269.70
 Episodio 1100 | Retorno medio:    99.61
 [Eval] Episodios 1081-1100: Retorno medio = -852.44
-´´´
+```
 
 Son malas noticias. Por ahora no conozco la razón por la cual haya ocurrido esto. Quizás va siendo hora de añadir un sistema de logs/telemetrías más avanzado, estilo tensorboard.
 
@@ -150,3 +152,4 @@ Es posible que tenga que reducir el peso de la penalización por no tener la vel
 Supongo qué al ser un número [-7, 7] al cuadrado (^2), se vuelve un número demasiado grande, que rompe mi función de reward. También podría aplicar abs(), para no usar ^2, o sqrt(+1), para limitar la influencia de diferencias enormes.
 
 
+He parado la ejecución. Voy a realizar cambios y lanzar el entrenamiento de nuevo.
