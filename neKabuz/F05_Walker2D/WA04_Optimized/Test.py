@@ -67,8 +67,7 @@ env = gym.make(
 )
 
 env = WalkerWithCommand(
-    env = env,
-    penalty = 1.0
+    env = env
 )
 
 

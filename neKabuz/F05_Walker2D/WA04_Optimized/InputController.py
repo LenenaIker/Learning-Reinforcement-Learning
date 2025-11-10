@@ -1,7 +1,7 @@
 import numpy as np
 
 X_MIN, X_MAX = 0.0, 10.0
-Y_MIN, Y_MAX = -1.0, 1.0
+Y_MIN, Y_MAX = -2.5, 4.0
 
 X_DEFAULT = np.array([0.0, 2.0, 4.0, 6.0, 8.0, 10.0], dtype = float)
 Y_DEFAULT = np.array([0.0, 0.8, 0.0, -0.8, 0.0, 0.6], dtype = float)
