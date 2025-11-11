@@ -6,10 +6,10 @@ import numpy as np
 
 from pathlib import Path
 
-from InputController import run_signal_builder, get_random_speed_function
+from InputController import run_signal_builder
 from Agent import SAC
 from Config import Config
-from EnvWrapper import WalkerWithCommand
+from EnvWrapper import WalkerWithCommand, make_interp_function
 
 
 def listar_archivos_recursivo(base_dir):
@@ -60,6 +60,8 @@ df = run_signal_builder()
 times = df["t"].to_numpy()
 speeds = df["y"].to_numpy()
 
+speed_fn = make_interp_function(times, speeds)
+
 env = gym.make(
     id = config.env_id,
     render_mode = "human",
@@ -90,6 +92,12 @@ try:
         for t in range(config.max_steps_per_episode):
             act = agent.act(obs = obs, explore = True)
             next_obs, reward, terminated, truncated, info = env.step(act)
+
+            if t % 50 == 0:
+                v_real = info.get("x_velocity", None)
+                v_deseada = speed_fn((t / config.max_steps_per_episode) * len(times))
+
+                print(f"\nV Real: {v_real}\nV Deseada: {v_deseada}\nDiff: {v_real - v_deseada}")
 
             obs = next_obs
 except Exception as e:

@@ -1,7 +1,7 @@
 import gymnasium as gym
 import numpy as np
 
-def _make_interp_function(t: np.ndarray, y: np.ndarray, clamp: bool = True):
+def make_interp_function(t: np.ndarray, y: np.ndarray, clamp: bool = True):
     t = np.asarray(t, dtype = float)
     y = np.asarray(y, dtype = float)
 
@@ -52,7 +52,7 @@ class WalkerWithCommand(gym.Wrapper):
 
         self.n_speeds = len(t_arr)
 
-        self.speed_function = _make_interp_function(t_arr, y_arr)
+        self.speed_function = make_interp_function(t_arr, y_arr)
 
         self.t = 0
         obs, info = self.env.reset(seed = seed, **kwargs)
