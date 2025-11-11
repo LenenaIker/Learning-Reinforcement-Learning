@@ -21,11 +21,10 @@ def make_interp_function(t: np.ndarray, y: np.ndarray, clamp: bool = True):
 
 
 class WalkerWithCommand(gym.Wrapper):
-    def __init__(self, env: gym.Env, penalty_weight: float = 0.2, reward_weight: float = 1.0, speed_name: str = "x_velocity", sigma: float = 0.5):
+    def __init__(self, env: gym.Env, reward_weight: float = 1.0, speed_name: str = "x_velocity", sigma: float = 0.5):
         super().__init__(env)
         self.speed_function = None
         self.n_speeds = None
-        self.penalty_weight = penalty_weight
         self.reward_weight = reward_weight
         self.speed_name = speed_name
         self.sigma = sigma
@@ -73,7 +72,7 @@ class WalkerWithCommand(gym.Wrapper):
         # Speed
         error = v_real - v_desired
         track_reward = np.exp(- (error**2) / (2 * self.sigma**2)) # Premio V
-        rew = rew + self.reward_weight * track_reward - self.penalty_weight * (error**2) # Castigo V
+        rew = rew + self.reward_weight * track_reward
 
         # Modified: reward = healthy_reward - ctrl_cost + speed_reward - speed_penalty
 

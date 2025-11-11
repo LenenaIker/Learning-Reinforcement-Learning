@@ -149,7 +149,42 @@ Episodio 1100 | Retorno medio:    99.61
 Son malas noticias. Por ahora no conozco la razón por la cual haya ocurrido esto. Quizás va siendo hora de añadir un sistema de logs/telemetrías más avanzado, estilo tensorboard.
 
 Es posible que tenga que reducir el peso de la penalización por no tener la velocidad adecuada.
-Supongo qué al ser un número [-7, 7] al cuadrado (^2), se vuelve un número demasiado grande, que rompe mi función de reward. También podría aplicar abs(), para no usar ^2, o sqrt(+1), para limitar la influencia de diferencias enormes.
+Supongo que al ser un número [-7, 7] al cuadrado (^2), se vuelve un número demasiado grande, que rompe mi función de reward. También podría aplicar abs(), para no usar ^2, o sqrt(+1), para limitar la influencia de diferencias enormes.
 
 
 He parado la ejecución. Voy a realizar cambios y lanzar el entrenamiento de nuevo.
+
+
+# Parte 3
+
+Tras un día y diecisiete horas de ejecución, he entrenado a un inutil. No sirve para nada.
+
+Tengo que hacer cambios importantes en la reward function. Y gastar otros 10 € en entrenar una cosa qué no se si funcionará. XD
+
+Por ahora voy a reducir la demanda de velocidades negativas en el generador de velocidades aleatorias.
+``` python
+# InputController.py
+
+# Antes
+Y_MIN, Y_MAX = -2.5, 4.0
+
+# Después
+Y_MIN, Y_MAX = -1.0, 4.0
+```
+Además voy a quitar el castigo por alejarse demasiado del objetivo y voy a ampliar el rango de premio.
+``` python
+# EnvWrapper.py
+
+# Antes
+rew = rew + w1 * track_reward - w2 * (error**2)
+
+# Después
+rew = rew + w1 * track_reward
+```
+
+Recomiendo abrir GeoGebra y abrir el siguiente archivo para ver el cambio al quitar el castigo:
+``` bash
+neKabuz\F05_Walker2D\WA04_Optimized\GeoGebra_RewardRepresentation.ggb
+```
+
+Voy a aumentar el sigma de 0.5 a 2, para ampliar el rango donde hace efecto el reward.

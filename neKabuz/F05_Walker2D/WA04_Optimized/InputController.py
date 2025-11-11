@@ -1,7 +1,7 @@
 import numpy as np
 
 X_MIN, X_MAX = 0.0, 10.0
-Y_MIN, Y_MAX = -2.5, 4.0
+Y_MIN, Y_MAX = -1.0, 4.0
 
 X_DEFAULT = np.array([0.0, 2.0, 4.0, 6.0, 8.0, 10.0], dtype = float)
 Y_DEFAULT = np.array([0.0, 0.8, 0.0, -0.8, 0.0, 0.6], dtype = float)
@@ -48,7 +48,7 @@ def get_random_speed_function(n: int = 10):
     y = np.random.uniform(-1.0, 1.0, size = n).astype(float)
     return ndarrays_to_function(t, y)
 
-def random_speed_arrays(n_speeds: int, start: float = -2.5, end: float = 4.0):
+def random_speed_arrays(n_speeds: int, start: float = Y_MIN, end: float = Y_MAX):
     t = np.linspace(0.0, 10.0, n_speeds, dtype = np.float32)
     y = np.random.uniform(start, end, size = n_speeds).astype(np.float32)
     return t, y

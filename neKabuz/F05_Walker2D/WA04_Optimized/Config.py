@@ -15,9 +15,8 @@ class Config:
     gamma: float = 0.99
 
     # Reward function
-    sigma: float = 0.5 # Amplitud de destribución normal qué premia por acercar V_real a V_deseado --> Qué tan exigente ser para premiarle
-    speed_penalty_weight: float = 0.2
-    speed_reward_weight: float = 1.0
+    sigma: float = 2.0 # Amplitud de destribución normal qué premia por acercar V_real a V_deseado --> Qué tan exigente ser para premiarle
+    speed_reward_weight: float = 1.5
 
     # Soft update
     tau: float = 0.005
