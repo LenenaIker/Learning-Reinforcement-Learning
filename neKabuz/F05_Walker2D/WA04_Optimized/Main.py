@@ -26,7 +26,6 @@ def make_env(seed, config: Config):
         )
         env = WalkerWithCommand(
             env = env,
-            penalty_weight = config.speed_penalty_weight,
             reward_weight = config.speed_reward_weight,
             speed_name = "x_velocity",
             sigma = config.sigma
