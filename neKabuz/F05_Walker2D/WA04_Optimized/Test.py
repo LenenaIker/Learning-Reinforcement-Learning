@@ -93,7 +93,7 @@ try:
             act = agent.act(obs = obs, explore = True)
             next_obs, reward, terminated, truncated, info = env.step(act)
 
-            if t % 50 == 0:
+            if t % 100 == 0:
                 v_real = info.get("x_velocity", None)
                 v_deseada = speed_fn((t / config.max_steps_per_episode) * len(times))
 
