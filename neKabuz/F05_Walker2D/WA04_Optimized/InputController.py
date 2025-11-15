@@ -1,7 +1,7 @@
 import numpy as np
 
 X_MIN, X_MAX = 0.0, 10.0
-Y_MIN, Y_MAX = -1.0, 4.0
+Y_MIN, Y_MAX = -1.0, 3.0
 
 X_DEFAULT = np.array([0.0, 2.0, 4.0, 6.0, 8.0, 10.0], dtype = float)
 Y_DEFAULT = np.array([0.0, 0.8, 0.0, -0.8, 0.0, 0.6], dtype = float)
@@ -60,6 +60,36 @@ def random_smooth_speed_arrays(n_speeds: int, std: float = 0.7, mean: float = 0.
     y = np.cumsum(steps) # Va a tener un sesgo marcado en caso de qué mean no sea 0
     
     return t, y
+
+
+def biased_speeds(
+    n_speeds: int,
+    v_min: float = -1.0,
+    v_max: float = 3.0,
+    p_min: float = 0.4,
+    p_max: float = 0.4,
+    p_zero: float = 0.15,
+    p_random: float = 0.05,
+):
+    assert abs(p_min + p_max + p_zero + p_random - 1) < 1e-6, "Las probabilidades deben sumar 1"
+
+    categories = np.random.choice(
+        ["min", "max", "zero", "rand"],
+        size = n_speeds,
+        p = [p_min, p_max, p_zero, p_random]
+    )
+
+    speeds = np.zeros(n_speeds, dtype = np.float32)
+    for i, c in enumerate(categories):
+        if c == "min":
+            speeds[i] = v_min
+        elif c == "max":
+            speeds[i] = v_max
+        elif c == "zero":
+            speeds[i] = 0.0
+        else:
+            speeds[i] = np.random.uniform(v_min, v_max)
+    return speeds
 
 
 

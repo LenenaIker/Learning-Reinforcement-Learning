@@ -1,5 +1,6 @@
 import gymnasium as gym
 import numpy as np
+from Config import Config
 
 def make_interp_function(t: np.ndarray, y: np.ndarray, clamp: bool = True):
     t = np.asarray(t, dtype = float)
@@ -21,13 +22,18 @@ def make_interp_function(t: np.ndarray, y: np.ndarray, clamp: bool = True):
 
 
 class WalkerWithCommand(gym.Wrapper):
-    def __init__(self, env: gym.Env, reward_weight: float = 1.0, speed_name: str = "x_velocity", sigma: float = 0.5):
+    def __init__(self, env: gym.Env, config: Config):
         super().__init__(env)
+        
+        self.desired_torso_height = config.torso_height
+        self.weight_torso = config.weight_torso
+
         self.speed_function = None
         self.n_speeds = None
-        self.reward_weight = reward_weight
-        self.speed_name = speed_name
-        self.sigma = sigma
+        self.weight_speed = config.weight_speed
+        self.speed_name = config.speed_name
+        self.sigma = config.sigma_speed
+        self.sigma_torso = config.sigma_torso
         self.t = 0
 
         old_low  = self.observation_space.low
@@ -38,16 +44,12 @@ class WalkerWithCommand(gym.Wrapper):
             dtype = np.float64
         )
 
-    def reset(self, *, seed: int | None = None, options: dict | None = None, **kwargs):
-        if options is None:
+    def reset(self, *, seed: int | None = None, options: dict, **kwargs):
+        t_arr = options.get("speed_t", None)
+        y_arr = options.get("speed_y", None)
+        if t_arr is None or y_arr is None:
             t_arr = np.array([0.0], dtype = float)
             y_arr = np.array([0.0], dtype = float)
-        else:
-            t_arr = options.get("speed_t", None)
-            y_arr = options.get("speed_y", None)
-            if t_arr is None or y_arr is None:
-                t_arr = np.array([0.0], dtype = float)
-                y_arr = np.array([0.0], dtype = float)
 
         self.n_speeds = len(t_arr)
 
@@ -61,20 +63,23 @@ class WalkerWithCommand(gym.Wrapper):
         return obs, info
 
     def step(self, action):
-        # Default: reward = healthy_reward + forward_reward - ctrl_cost
         obs, rew, terminated, truncated, info = self.env.step(action)
         self.t += 1
 
+        # Get speed
         time = (self.t / self.env._max_episode_steps) * self.n_speeds
         v_desired = self.speed_function(time)
-        v_real = info.get(self.speed_name, None)
+        v_real = info.get(self.speed_name, 0.0)
+        v_error = v_real - v_desired
+        track_gauss = np.exp(-(v_error ** 2) / (2 * self.sigma ** 2))
 
-        # Speed
-        error = v_real - v_desired
-        track_reward = np.exp(- (error**2) / (2 * self.sigma**2)) # Premio V
-        rew = rew + self.reward_weight * track_reward
+        # Torso
+        torso_height = obs[0]
+        torso_error = torso_height - self.desired_torso_height
+        height_Score = np.exp(-(torso_error ** 2) / (2 * self.sigma_torso ** 2))
 
-        # Modified: reward = healthy_reward - ctrl_cost + speed_reward - speed_penalty
+
+        rew += self.weight_speed * track_score + self.weight_torso * height_Score
 
         obs = np.concatenate([obs, [v_desired]]).astype(np.float32)
         return obs, rew, terminated, truncated, info

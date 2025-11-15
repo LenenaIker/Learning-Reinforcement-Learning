@@ -15,8 +15,14 @@ class Config:
     gamma: float = 0.99
 
     # Reward function
-    sigma: float = 2.0 # Amplitud de destribución normal qué premia por acercar V_real a V_deseado --> Qué tan exigente ser para premiarle
-    speed_reward_weight: float = 1.5
+    sigma_speed: float = 0.8
+    sigma_torso: float = 0.8
+
+    weight_speed: float = 5.0
+    weight_torso: float = 1.0
+    
+    speed_name: str = "x_velocity"
+    torso_height: float = 1.2 # A ojo, berez ustet 1.25ekin hasteala, baño nahiagoet belaunak flexionatuak izatea
 
     # Soft update
     tau: float = 0.005

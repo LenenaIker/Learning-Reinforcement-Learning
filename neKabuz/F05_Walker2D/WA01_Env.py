@@ -13,7 +13,7 @@ for i in range(5):
     for j in range(200):
         act = np.random.uniform(-1, 1, size = 6)
         obs, reward, terminated, truncated, info = env.step(act)
-        
+
         speeds.append(info.get("x_velocity", None))
 
 env.close()

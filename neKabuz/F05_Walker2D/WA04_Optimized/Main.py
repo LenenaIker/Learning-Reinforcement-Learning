@@ -8,7 +8,7 @@ import re
 
 from Agent import SAC
 from Config import Config
-from InputController import random_speed_arrays
+from InputController import biased_speeds
 from EnvWrapper import WalkerWithCommand
 
 def set_seed(seed: int):
@@ -24,12 +24,7 @@ def make_env(seed, config: Config):
             max_episode_steps = config.max_steps_per_episode,
             forward_reward_weight = 0.0
         )
-        env = WalkerWithCommand(
-            env = env,
-            reward_weight = config.speed_reward_weight,
-            speed_name = "x_velocity",
-            sigma = config.sigma
-        )
+        env = WalkerWithCommand(env = env, config = config)
         env.reset(
             seed = seed,
             options = {
@@ -44,11 +39,10 @@ def evaluate(agent, eval_env, episodes = 5, n_speeds = 10):
     n_envs = eval_env.num_envs
     returns = []
     for _ in range(episodes):
-        times, speeds = random_speed_arrays(n_speeds)
         obs, _ = eval_env.reset(
             options = {
-                "speed_t": times,
-                "speed_y": speeds
+                "speed_t": np.linspace(0.0, 10.0, n_speeds, dtype = np.float32),
+                "speed_y": biased_speeds(n_speeds = n_speeds)
             }
         )
         
@@ -94,12 +88,11 @@ if __name__ == "__main__":
         print("Model loaded:", MODEL_NAME, "| Best Evaluation =", best_eval)
 
     for ep in range(1, config.total_episodes + 1):
-        times, speeds = random_speed_arrays(N_SPEEDS)
         obs, info = train_env.reset(
             seed = config.seed + ep,
             options = {
-                "speed_t": times,
-                "speed_y": speeds
+                "speed_t": np.linspace(0.0, 10.0, N_SPEEDS, dtype = np.float32),
+                "speed_y": biased_speeds(n_speeds = N_SPEEDS)
             }
         )
 
