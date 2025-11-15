@@ -44,12 +44,16 @@ class WalkerWithCommand(gym.Wrapper):
             dtype = np.float64
         )
 
-    def reset(self, *, seed: int | None = None, options: dict, **kwargs):
-        t_arr = options.get("speed_t", None)
-        y_arr = options.get("speed_y", None)
-        if t_arr is None or y_arr is None:
+    def reset(self, *, seed: int | None = None, options: dict | None = None, **kwargs):
+        if options is None:
             t_arr = np.array([0.0], dtype = float)
             y_arr = np.array([0.0], dtype = float)
+        else:
+            t_arr = options.get("speed_t", None)
+            y_arr = options.get("speed_y", None)
+            if t_arr is None or y_arr is None:
+                t_arr = np.array([0.0], dtype = float)
+                y_arr = np.array([0.0], dtype = float)
 
         self.n_speeds = len(t_arr)
 
