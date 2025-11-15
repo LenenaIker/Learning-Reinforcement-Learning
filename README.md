@@ -46,4 +46,4 @@ I have resolved it with SAC. It is an interesting algorithm because instead of p
   - WA04: I hope to achieve the goal.
 
 
-Until now, I have spent 40€ training models on Runpod.
+Until now, I have spent 50€ training models on Runpod.
