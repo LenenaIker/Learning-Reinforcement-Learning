@@ -71,11 +71,8 @@ if __name__ == "__main__":
 
     print("Config:", config, "\n", "Device:", device, sep="\n")
 
-    num_train_envs = 16
-    num_eval_envs = 4
-
-    train_env = gym.vector.AsyncVectorEnv([make_env(config.seed + i, config) for i in range(num_train_envs)])
-    eval_env = gym.vector.SyncVectorEnv([make_env(config.seed + 100 + i, config) for i in range(num_eval_envs)])
+    train_env = gym.vector.AsyncVectorEnv([make_env(config.seed + i, config) for i in range(config.num_train_envs)])
+    eval_env = gym.vector.SyncVectorEnv([make_env(config.seed + 100 + i, config) for i in range(config.num_eval_envs)])
 
     agent = SAC(train_env.single_observation_space, train_env.single_action_space, config, device)
 
@@ -96,14 +93,14 @@ if __name__ == "__main__":
             }
         )
 
-        done = np.zeros(num_train_envs, dtype = bool)
-        ep_ret = np.zeros(num_train_envs, dtype = np.float32)
+        done = np.zeros(config.num_train_envs, dtype = bool)
+        ep_ret = np.zeros(config.num_train_envs, dtype = np.float32)
 
         for t in range(config.max_steps_per_episode):
             if total_steps < config.warmup_steps:
                 act = np.stack(
                     [train_env.single_action_space.sample()
-                    for _ in range(num_train_envs)]
+                    for _ in range(config.num_train_envs)]
                 ).astype(np.float32)
             else:
                 act = agent.act(obs, explore = True)
@@ -117,7 +114,7 @@ if __name__ == "__main__":
             ep_ret += reward
             done |= dones
 
-            total_steps += num_train_envs
+            total_steps += config.num_train_envs
 
             if total_steps >= config.warmup_steps:
                 for _ in range(config.updates_per_step):

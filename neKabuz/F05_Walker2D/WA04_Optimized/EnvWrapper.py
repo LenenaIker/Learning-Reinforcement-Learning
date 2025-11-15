@@ -24,7 +24,7 @@ def make_interp_function(t: np.ndarray, y: np.ndarray, clamp: bool = True):
 class WalkerWithCommand(gym.Wrapper):
     def __init__(self, env: gym.Env, config: Config):
         super().__init__(env)
-        
+
         self.desired_torso_height = config.torso_height
         self.weight_torso = config.weight_torso
 
@@ -39,8 +39,8 @@ class WalkerWithCommand(gym.Wrapper):
         old_low  = self.observation_space.low
         old_high = self.observation_space.high
         self.observation_space = gym.spaces.Box(
-            low = np.concatenate([old_low, [-np.inf]]),
-            high = np.concatenate([old_high, [np.inf]]),
+            low = np.concatenate([old_low, [-np.inf, -np.inf]]),
+            high = np.concatenate([old_high, [np.inf, np.inf]]),
             dtype = np.float64
         )
 
@@ -59,7 +59,7 @@ class WalkerWithCommand(gym.Wrapper):
         obs, info = self.env.reset(seed = seed, **kwargs)
 
         speed = self.speed_function(0.0)
-        obs = np.concatenate([obs, [speed]]).astype(np.float32)
+        obs = np.concatenate([obs, [speed, 0.0]]).astype(np.float32)
         return obs, info
 
     def step(self, action):
@@ -71,7 +71,7 @@ class WalkerWithCommand(gym.Wrapper):
         v_desired = self.speed_function(time)
         v_real = info.get(self.speed_name, 0.0)
         v_error = v_real - v_desired
-        track_gauss = np.exp(-(v_error ** 2) / (2 * self.sigma ** 2))
+        track_score = np.exp(-(v_error ** 2) / (2 * self.sigma ** 2))
 
         # Torso
         torso_height = obs[0]
@@ -81,5 +81,5 @@ class WalkerWithCommand(gym.Wrapper):
 
         rew += self.weight_speed * track_score + self.weight_torso * height_Score
 
-        obs = np.concatenate([obs, [v_desired]]).astype(np.float32)
+        obs = np.concatenate([obs, [v_desired, v_error]]).astype(np.float32)
         return obs, rew, terminated, truncated, info

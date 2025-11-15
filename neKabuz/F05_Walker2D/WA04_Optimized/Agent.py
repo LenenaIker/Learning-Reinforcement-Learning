@@ -215,6 +215,11 @@ class SAC():
         self.actor_opt.load_state_dict(ckpt["actor_opt"])
         self.critic_1_opt.load_state_dict(ckpt["critic_1_opt"])
         self.critic_2_opt.load_state_dict(ckpt["critic_2_opt"])
+        
         # alpha
-        self.log_alpha = ckpt["log_alpha"]
+        self.log_alpha = torch.tensor(
+            ckpt["log_alpha"],
+            device = self.device,
+            requires_grad = True
+        )
         self.alpha_opt.load_state_dict(ckpt["alpha_opt"])

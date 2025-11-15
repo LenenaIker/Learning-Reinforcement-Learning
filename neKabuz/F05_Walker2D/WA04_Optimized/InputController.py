@@ -1,65 +1,10 @@
 import numpy as np
 
 X_MIN, X_MAX = 0.0, 10.0
-Y_MIN, Y_MAX = -1.0, 3.0
+Y_MIN, Y_MAX = -1.0, 3.2
 
 X_DEFAULT = np.array([0.0, 2.0, 4.0, 6.0, 8.0, 10.0], dtype = float)
 Y_DEFAULT = np.array([0.0, 0.8, 0.0, -0.8, 0.0, 0.6], dtype = float)
-
-
-def df_to_function(df, clamp = True):
-    t = np.asarray(df["t"].values, dtype = float)
-    y = np.asarray(df["y"].values, dtype = float)
-    idx = np.argsort(t)
-    t = t[idx]; y = y[idx]
-
-    left = y[0] if clamp else np.nan
-    right = y[-1] if clamp else np.nan
-
-    def f(tq):
-        tq_arr = np.asarray(tq, dtype = float)
-        vals = np.interp(tq_arr, t, y, left = left, right = right)
-        return float(vals) if np.isscalar(tq) else vals
-
-    return f
-
-
-def ndarrays_to_function(t: np.ndarray, y: np.ndarray, clamp: bool = True):
-    t = np.asarray(t, dtype = float)
-    y = np.asarray(y, dtype = float)
-
-    # aseguramos orden
-    idx = np.argsort(t)
-    t = t[idx]
-    y = y[idx]
-
-    left = y[0] if clamp else np.nan
-    right = y[-1] if clamp else np.nan
-
-    def f(tq):
-        tq_arr = np.asarray(tq, dtype = float)
-        vals = np.interp(tq_arr, t, y, left = left, right = right)
-        return float(vals) if np.isscalar(tq) else vals
-
-    return f
-
-def get_random_speed_function(n: int = 10):
-    t = np.linspace(X_MIN, X_MAX, n, dtype = float)
-    y = np.random.uniform(-1.0, 1.0, size = n).astype(float)
-    return ndarrays_to_function(t, y)
-
-def random_speed_arrays(n_speeds: int, start: float = Y_MIN, end: float = Y_MAX):
-    t = np.linspace(0.0, 10.0, n_speeds, dtype = np.float32)
-    y = np.random.uniform(start, end, size = n_speeds).astype(np.float32)
-    return t, y
-
-def random_smooth_speed_arrays(n_speeds: int, std: float = 0.7, mean: float = 0.06):
-    t = np.linspace(0.0, 10.0, n_speeds, dtype = np.float32)
-
-    steps = np.random.normal(loc = mean, scale = std, size = n_speeds).astype(np.float32)
-    y = np.cumsum(steps) # Va a tener un sesgo marcado en caso de qué mean no sea 0
-    
-    return t, y
 
 
 def biased_speeds(
