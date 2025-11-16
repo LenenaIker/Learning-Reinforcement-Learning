@@ -69,7 +69,8 @@ env = gym.make(
 )
 
 env = WalkerWithCommand(
-    env = env
+    env = env,
+    config = config
 )
 
 
