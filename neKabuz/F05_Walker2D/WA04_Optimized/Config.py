@@ -22,10 +22,11 @@ class Config:
     sigma_torso: float = 0.5
 
     weight_speed: float = 4.0
-    weight_torso: float = 1.5
+    weight_torso: float = 3.0
     
     speed_name: str = "x_velocity"
     torso_height: float = 1.2 # A ojo, berez ustet 1.25ekin hasteala, baño nahiagoet belaunak flexionatuak izatea
+
 
     # Soft update
     tau: float = 0.005

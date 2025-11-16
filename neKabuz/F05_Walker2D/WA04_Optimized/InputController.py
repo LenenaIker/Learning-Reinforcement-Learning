@@ -1,10 +1,29 @@
 import numpy as np
+from SpeedPlans import TRAINING_PLANS
+import random
 
 X_MIN, X_MAX = 0.0, 10.0
 Y_MIN, Y_MAX = -1.0, 3.2
 
 X_DEFAULT = np.array([0.0, 2.0, 4.0, 6.0, 8.0, 10.0], dtype = float)
 Y_DEFAULT = np.array([0.0, 0.8, 0.0, -0.8, 0.0, 0.6], dtype = float)
+
+
+def planned_speeds(noise_std: float = 0.25):
+    plan = random.choice(TRAINING_PLANS).copy()
+
+    if noise_std != 0:
+        plan += np.random.normal(loc = 0.0, scale = noise_std, size = plan.shape)
+
+    return plan
+
+def planned_random_speeds(random_prob: float = 0.2):
+    speeds = None
+    if np.random.rand() > random_prob:
+        speeds = planned_speeds()
+    else:
+        speeds = biased_speeds(n_speeds = 10)
+    return speeds
 
 
 def biased_speeds(
@@ -38,7 +57,6 @@ def biased_speeds(
 
 
 
-# Honea muitzet, hola ezbaiot deitzen eztu importatzen, ta eztet RunPod barrun instalatu beharko
 def run_signal_builder():
     import pandas as pd
     import sys
@@ -185,4 +203,3 @@ def run_signal_builder():
     w.show()
     app.exec_()
     return w.data
-
