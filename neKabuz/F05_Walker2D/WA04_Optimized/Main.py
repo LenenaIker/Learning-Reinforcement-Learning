@@ -35,7 +35,7 @@ def make_env(seed, config: Config):
         return env
     return thunk
 
-def evaluate(agent, eval_env, episodes = 5):
+def evaluate(agent, eval_env: WalkerWithCommand, episodes = 5):
     n_envs = eval_env.num_envs
     returns = []
     for _ in range(episodes):
@@ -128,7 +128,7 @@ if __name__ == "__main__":
         print(f"Episodio {ep:03d} | Retorno medio: {ep_ret.mean():8.2f}")
 
         if ep % config.eval_every == 0:
-            avg_ret = evaluate(agent, eval_env, config.eval_episodes, N_SPEEDS)
+            avg_ret = evaluate(agent, eval_env, config.eval_episodes)
             print(f"[Eval] Episodios {ep - config.eval_every + 1}-{ep}: Retorno medio = {avg_ret:.2f}")
             if avg_ret > best_eval:
                 best_eval = avg_ret

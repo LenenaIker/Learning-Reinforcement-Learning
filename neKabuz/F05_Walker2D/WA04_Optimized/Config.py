@@ -18,11 +18,11 @@ class Config:
     gamma: float = 0.99
 
     # Reward function
-    sigma_speed: float = 0.7
-    sigma_torso: float = 0.5
+    sigma_speed: float = 0.9
+    sigma_torso: float = 0.4
 
     weight_speed: float = 4.0
-    weight_torso: float = 3.0
+    weight_torso: float = 6.0
     
     speed_name: str = "x_velocity"
     torso_height: float = 1.2 # A ojo, berez ustet 1.25ekin hasteala, baño nahiagoet belaunak flexionatuak izatea

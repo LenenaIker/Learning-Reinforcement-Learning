@@ -98,7 +98,7 @@ try:
                 v_real = info.get("x_velocity", None)
                 v_deseada = speed_fn((t / config.max_steps_per_episode) * len(times))
 
-                print(f"\nV Real: {v_real}\nV Deseada: {v_deseada}\nDiff: {v_real - v_deseada}")
+                print(f"\nV diff: {v_real - v_deseada}\nH diff: {config.torso_height - obs[0]}")
 
             obs = next_obs
 except Exception as e:
